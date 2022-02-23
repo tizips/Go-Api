@@ -1,0 +1,1 @@
+drop table if exists oa_staff_bind_department;

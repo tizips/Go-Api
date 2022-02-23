@@ -1,0 +1,12 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# production
+public/upload
+conf/env.conf
+
+.idea
+*bak
+
+# visual studio code
+.history
+*.log

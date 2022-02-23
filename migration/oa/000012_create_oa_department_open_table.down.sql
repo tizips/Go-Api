@@ -1,0 +1,1 @@
+drop table if exists oa_department_open;
