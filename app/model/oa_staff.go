@@ -10,10 +10,10 @@ const TableOaStaff = "oa_staff"
 type OaStaff struct {
 	Id        uint `gorm:"primary_key"`
 	MemberId  string
-	No        string
+	No        string `gorm:"default:null"`
 	ManagerId uint
 	Title     string
-	Email     string
+	Email     string `gorm:"default:null"`
 	HiredDate carbon.DateTime
 	Remark    string
 	Status    string

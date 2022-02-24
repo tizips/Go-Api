@@ -15,9 +15,9 @@ type DorPeople struct {
 	RoomId     uint
 	BedId      uint
 	TypeId     uint
-	MemberId   uint
-	Start      carbon.DateTime `gorm:"default:null"`
-	End        carbon.DateTime `gorm:"default:null"`
+	MemberId   string
+	Start      carbon.Date `gorm:"default:null"`
+	End        carbon.Date `gorm:"default:null"`
 	Remark     string
 	IsTemp     uint8
 	IsMaster   uint8
@@ -26,12 +26,15 @@ type DorPeople struct {
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt
 
-	Category DorStayCategory `gorm:"foreignKey:Id;references:CategoryId"`
-	Building DorBuilding     `gorm:"foreignKey:Id;references:BuildingId"`
-	Floor    DorFloor        `gorm:"foreignKey:Id;references:FloorId"`
-	Room     DorRoom         `gorm:"foreignKey:Id;references:RoomId"`
-	Bed      DorBed          `gorm:"foreignKey:Id;references:BedId"`
-	Type     DorType         `gorm:"foreignKey:Id;references:TypeId"`
+	Member        MemMember        `gorm:"foreignKey:Id;references:MemberId"`
+	Staff         OaStaff          `gorm:"foreignKey:MemberId;references:MemberId"`
+	Certification MemCertification `gorm:"foreignKey:MemberId;references:MemberId"`
+	Category      DorStayCategory  `gorm:"foreignKey:Id;references:CategoryId"`
+	Building      DorBuilding      `gorm:"foreignKey:Id;references:BuildingId"`
+	Floor         DorFloor         `gorm:"foreignKey:Id;references:FloorId"`
+	Room          DorRoom          `gorm:"foreignKey:Id;references:RoomId"`
+	Bed           DorBed           `gorm:"foreignKey:Id;references:BedId"`
+	Type          DorType          `gorm:"foreignKey:Id;references:TypeId"`
 }
 
 const (

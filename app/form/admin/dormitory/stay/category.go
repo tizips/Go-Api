@@ -1,4 +1,4 @@
-package live
+package stay
 
 import "saas/app/form/basic"
 

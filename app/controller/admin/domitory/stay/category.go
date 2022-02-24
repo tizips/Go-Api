@@ -3,9 +3,9 @@ package stay
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	liveForm "saas/app/form/admin/dormitory/live"
+	liveForm "saas/app/form/admin/dormitory/stay"
 	"saas/app/model"
-	"saas/app/response/admin/dormitory/live"
+	"saas/app/response/admin/dormitory/stay"
 	"saas/kernel/data"
 	"saas/kernel/response"
 	"strconv"
@@ -179,7 +179,7 @@ func ToCategoryByList(ctx *gin.Context) {
 	data.Database.Order("`order` asc").Order("`id` desc").Find(&categories)
 
 	for _, item := range categories {
-		responses.Data = append(responses.Data, live.ToCategoryByListResponse{
+		responses.Data = append(responses.Data, stay.ToCategoryByListResponse{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -204,9 +204,10 @@ func ToCategoryByOnline(ctx *gin.Context) {
 	data.Database.Order("`order` asc").Order("`id` desc").Find(&categories)
 
 	for _, item := range categories {
-		responses.Data = append(responses.Data, live.ToCategoryByOnlineResponse{
-			Id:   item.Id,
-			Name: item.Name,
+		responses.Data = append(responses.Data, stay.ToCategoryByOnlineResponse{
+			Id:     item.Id,
+			Name:   item.Name,
+			IsTemp: item.IsTemp,
 		})
 	}
 

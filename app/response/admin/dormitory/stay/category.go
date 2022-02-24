@@ -1,4 +1,4 @@
-package live
+package stay
 
 type ToCategoryByListResponse struct {
 	Id        uint   `json:"id"`
@@ -10,6 +10,7 @@ type ToCategoryByListResponse struct {
 }
 
 type ToCategoryByOnlineResponse struct {
-	Id   uint   `json:"id"`
-	Name string `json:"name"`
+	Id     uint   `json:"id"`
+	Name   string `json:"name"`
+	IsTemp uint8  `json:"is_temp"`
 }

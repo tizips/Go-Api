@@ -17,3 +17,8 @@ type DorStayCategory struct {
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt
 }
+
+const (
+	DorStayCategoryIsTempYes = 1
+	DorStayCategoryIsTempNo  = 0
+)

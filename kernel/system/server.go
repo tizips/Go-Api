@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"saas/kernel/config"
+	"saas/kernel/validator"
 	"saas/routes"
 	"time"
 )
@@ -20,6 +21,8 @@ func Server() {
 	fmt.Printf("Listen: %s\n", config.Configs.Server.Port)
 
 	app := gin.New()
+
+	validator.Init()
 
 	routes.Routes(app)
 

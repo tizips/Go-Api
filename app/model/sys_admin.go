@@ -9,10 +9,10 @@ import (
 const TableSysAdmin = "sys_admin"
 
 type SysAdmin struct {
-	Id        uint `gorm:"primary_key"`
-	Username  string
-	Mobile    string
-	Email     string
+	Id        uint   `gorm:"primary_key"`
+	Username  string `gorm:"default:null"`
+	Mobile    string `gorm:"default:null"`
+	Email     string `gorm:"default:null"`
 	Nickname  string
 	Avatar    string
 	Password  string
