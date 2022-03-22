@@ -74,6 +74,18 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 		return
 	}
 
+	if category.IsEnable != former.IsEnable {
+		var peoples int64 = 0
+		data.Database.Model(model.DorPeople{}).Where("category_id=?", category.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		if peoples > 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "该类型正在使用，无法上下架",
+			})
+			return
+		}
+	}
+
 	category.Name = former.Name
 	category.Order = former.Order
 	category.IsEnable = former.IsEnable
@@ -114,6 +126,16 @@ func DoCategoryByDelete(ctx *gin.Context) {
 		return
 	}
 
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("category_id=?", category.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该类型正在使用，无法上下架",
+		})
+		return
+	}
+
 	if t := data.Database.Delete(&category); t.RowsAffected <= 0 {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -150,6 +172,16 @@ func DoCategoryByEnable(ctx *gin.Context) {
 		return
 	}
 
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("category_id=?", category.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该类型正在使用，无法上下架",
+		})
+		return
+	}
+
 	category.IsEnable = former.IsEnable
 
 	if t := data.Database.Save(&category); t.RowsAffected <= 0 {
@@ -172,7 +204,7 @@ func ToCategoryByList(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var categories []model.DorStayCategory
@@ -197,7 +229,7 @@ func ToCategoryByOnline(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var categories []model.DorStayCategory

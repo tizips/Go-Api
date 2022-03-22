@@ -7,6 +7,7 @@ type DoFloorByCreateForm struct {
 	Building uint   `form:"building" json:"building" building:"required,gt=0"`
 	Order    uint   `form:"order" json:"order" binding:"required,gte=1,lte=99"`
 	basic.Enable
+	IsPublic uint8 `form:"is_public" json:"is_public" binding:"eq=1|eq=2"`
 }
 
 type DoFloorByUpdateForm struct {
@@ -21,7 +22,9 @@ type ToFloorByListForm struct {
 }
 
 type ToFloorByOnlineForm struct {
-	Building uint `form:"building" json:"building" binding:"required,gt=0"`
+	Building   uint  `form:"building" json:"building" binding:"required,gt=0"`
+	IsPublic   uint8 `form:"is_public" json:"is_public" binding:"omitempty,eq=1|eq=2"`
+	WithPublic bool  `form:"with_public" json:"with_public" binding:"omitempty"`
 }
 
 type DoFloorByEnableForm struct {

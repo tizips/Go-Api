@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"reflect"
-	"saas/app/helper"
+	"saas/app/helper/str"
 	"saas/kernel/config"
 	"saas/kernel/data"
 	"strconv"
@@ -30,7 +30,7 @@ func (m *Model) AfterDelete(tx *gorm.DB) (err error) {
 //	数据修改之后，自动删除缓存模型
 func (m *Model) clear(tx *gorm.DB) {
 
-	var id interface{} = nil
+	var id any = nil
 
 	for _, field := range tx.Statement.Schema.Fields {
 		if field.Name == tx.Statement.Schema.PrioritizedPrimaryField.Name {
@@ -58,20 +58,20 @@ func (m *Model) clear(tx *gorm.DB) {
 }
 
 //	优先从缓存中获取模型
-func Find(ctx *gin.Context, id interface{}, model interface{}) {
+func Find(ctx *gin.Context, id any, model any) {
 
 	t := reflect.TypeOf(model).Elem()
 
 	if t.Kind() == reflect.Struct {
 
-		table := helper.StringSnake(t.Name())
+		table := str.Snake(t.Name())
 		result, err := data.Redis.Get(ctx, key(table, id)).Result()
 
 		if err == nil && result != "" {
 			_ = json.Unmarshal([]byte(result), &model)
 		}
 
-		var ID interface{} = nil
+		var ID any = nil
 		var keys = ""
 
 		for i := 0; i < t.NumField(); i++ {
@@ -91,7 +91,7 @@ func Find(ctx *gin.Context, id interface{}, model interface{}) {
 				}
 				if mark {
 					if k == "" {
-						k = helper.StringSnake(t.Field(i).Name)
+						k = str.Snake(t.Field(i).Name)
 					}
 					keys = k
 					switch reflect.ValueOf(model).Elem().Field(i).Kind() {
@@ -125,7 +125,7 @@ func Find(ctx *gin.Context, id interface{}, model interface{}) {
 	}
 }
 
-func key(table string, id interface{}) string {
+func key(table string, id any) string {
 	return fmt.Sprintf("%s:%s:%v", config.Configs.Cache.Prefix, table, id)
 }
 

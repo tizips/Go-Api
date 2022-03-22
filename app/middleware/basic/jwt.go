@@ -11,11 +11,11 @@ import (
 	"strconv"
 )
 
-func JwtParse() gin.HandlerFunc {
+func JwtParseMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if authorization := ctx.GetHeader("Authorization"); authorization != "" {
 			var claims jwt.StandardClaims
-			_, _ = jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (interface{}, error) {
+			_, _ = jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
 				return []byte(config.Configs.Jwt.Secret), nil
 			})
 			if claims.Id != "" {

@@ -34,7 +34,7 @@ func ToAccountByModule(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var modules []model.SysModule
@@ -86,7 +86,7 @@ func ToAccountByPermission(ctx *gin.Context) {
 	var responses = response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var permissions []model.SysPermission

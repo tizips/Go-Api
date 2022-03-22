@@ -8,7 +8,7 @@ import (
 	"saas/kernel/response"
 )
 
-func Auth(issue string) gin.HandlerFunc {
+func AuthMiddleware(issue string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		if !auth.Check(ctx) {

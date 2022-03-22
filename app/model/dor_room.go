@@ -16,6 +16,7 @@ type DorRoom struct {
 	Order      uint
 	IsFurnish  uint8
 	IsEnable   uint8
+	IsPublic   uint8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt
@@ -24,3 +25,11 @@ type DorRoom struct {
 	Floor    DorFloor    `gorm:"foreignKey:Id;references:FloorId"`
 	Type     DorType     `gorm:"foreignKey:Id;references:TypeId"`
 }
+
+const (
+	DorRoomIsFurnishYes = 1
+	DorRoomIsFurnishNo  = 2
+
+	DorRoomIsPublicYes = 1
+	DorRoomIsPublicNo  = 2
+)

@@ -15,4 +15,6 @@ type DorType struct {
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt
+
+	Beds []DorTypeBed `gorm:"foreignKey:TypeId;references:Id"`
 }

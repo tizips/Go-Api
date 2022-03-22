@@ -13,9 +13,11 @@ type DorBed struct {
 	FloorId    uint
 	RoomId     uint
 	TypeId     uint
+	BedId      uint
 	Name       string
 	Order      uint
 	IsEnable   uint8
+	IsPublic   uint8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt
@@ -25,3 +27,8 @@ type DorBed struct {
 	Room     DorRoom     `gorm:"foreignKey:Id;references:RoomId"`
 	Type     DorType     `gorm:"foreignKey:Id;references:TypeId"`
 }
+
+const (
+	DorBedIsPublicYes = 1
+	DorBedIsPublicNo  = 2
+)

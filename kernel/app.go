@@ -2,9 +2,12 @@ package kernel
 
 import (
 	"os"
+	"saas/app/crontab"
 	"saas/kernel/auth"
 	"saas/kernel/config"
 	"saas/kernel/data"
+	"saas/kernel/dir"
+	"saas/kernel/logger"
 	"saas/kernel/system"
 )
 
@@ -36,9 +39,16 @@ func initialize() {
 
 	config.InitConfig()
 
+	dir.InitDir()
+
+	logger.InitLogger()
+
 	data.InitDatabase()
 
 	data.InitRedis()
 
 	auth.InitCasbin()
+
+	crontab.InitCrontab()
+
 }

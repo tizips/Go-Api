@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
+	gormLogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"os"
 	"saas/kernel/config"
+	"saas/kernel/logger"
 	"strconv"
 	"time"
 )
@@ -16,11 +17,17 @@ var Database *gorm.DB
 
 func InitDatabase() {
 
+	log := logger.NewGormLogger()
+	log.SlowThreshold = time.Millisecond * 200
+
 	var err error
 
 	Database, err = gorm.Open(mysql.Open(GetDns()), &gorm.Config{
-		Logger:                                   logger.Default.LogMode(logger.Info),
-		NamingStrategy:                           schema.NamingStrategy{TablePrefix: config.Configs.Database.Prefix, SingularTable: true},
+		Logger: log.LogMode(gormLogger.Info),
+		NamingStrategy: schema.NamingStrategy{
+			TablePrefix:   config.Configs.Database.Prefix,
+			SingularTable: true,
+		},
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 

@@ -16,7 +16,7 @@ create table mem_member
     `year`       smallint unsigned not null default 0 comment '年',
     `month`      tinyint unsigned  not null default 0 comment '月',
     `day`        tinyint unsigned  not null default 0 comment '日',
-    `is_enable`  tinyint unsigned  not null default 0 comment '是否启用：0=否；1=是',
+    `is_enable`  tinyint unsigned  not null default 0 comment '是否启用：1=是；2=否；',
     `created_at` timestamp         not null default CURRENT_TIMESTAMP,
     `updated_at` timestamp         not null default CURRENT_TIMESTAMP,
     `deleted_at` timestamp                  default null,

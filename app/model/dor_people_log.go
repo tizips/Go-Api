@@ -23,6 +23,6 @@ const (
 	DorPeopleLogStatusLive     = "live"
 	DorPeopleLogStatusLeave    = "leave"
 	DorPeopleLogStatusChange   = "change"
-	DorpeoplelogstatusRefill   = "refill"
-	DorpeoplelogstatusPositive = "positive"
+	DorPeopleLogStatusRefill   = "refill"
+	DorPeopleLogStatusPositive = "positive"
 )

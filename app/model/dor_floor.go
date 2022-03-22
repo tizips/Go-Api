@@ -13,9 +13,15 @@ type DorFloor struct {
 	Name       string
 	Order      uint
 	IsEnable   uint8
+	IsPublic   uint8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt
 
 	Building DorBuilding `gorm:"foreignKey:Id;references:BuildingId"`
 }
+
+const (
+	DorFloorIsPublicYes = 1
+	DorFloorIsPublicNo  = 2
+)

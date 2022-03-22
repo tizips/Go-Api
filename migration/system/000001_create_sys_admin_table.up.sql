@@ -7,7 +7,7 @@ create table sys_admin
     `nickname`   varchar(32)      not null default '' comment '昵称',
     `avatar`     varchar(255)     not null default '' comment '头像',
     `password`   varchar(64)      not null default '' comment '密码',
-    `is_enable`  tinyint unsigned not null default 0 comment '是否启用：0=否；1=是',
+    `is_enable`  tinyint unsigned not null default 0 comment '是否启用：1=是；2=否；',
     `created_at` timestamp        not null default CURRENT_TIMESTAMP,
     `updated_at` timestamp        not null default CURRENT_TIMESTAMP,
     `deleted_at` timestamp                 default null,

@@ -38,7 +38,7 @@ func ToApiByList(ctx *gin.Context) {
 	res := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var permissions []model.SysPermission
@@ -52,7 +52,7 @@ func ToApiByList(ctx *gin.Context) {
 		urls := strings.Split(item.Path, "/")
 		if len(urls) >= 3 && urls[1] == "admin" && urls[2] == module.Slug {
 			mark := true
-			for _, value := range omits() {
+			for _, value := range Omits() {
 				if item.Method == value.Method && item.Path == value.Path {
 					mark = false
 				}
@@ -77,7 +77,7 @@ func ToApiByList(ctx *gin.Context) {
 }
 
 //	被忽略返回的 Api
-func omits() []helper.ToApiByListResponse {
+func Omits() []helper.ToApiByListResponse {
 	return []helper.ToApiByListResponse{
 
 		{Method: http.MethodPost, Path: "/admin/login/account"},
@@ -98,5 +98,8 @@ func omits() []helper.ToApiByListResponse {
 		{Method: http.MethodGet, Path: "/admin/dormitory/basic/room/online"},
 		{Method: http.MethodGet, Path: "/admin/dormitory/basic/bed/online"},
 		{Method: http.MethodGet, Path: "/admin/dormitory/stay/category/online"},
+		{Method: http.MethodGet, Path: "/admin/dormitory/asset/category/online"},
+		{Method: http.MethodGet, Path: "/admin/dormitory/asset/device/online"},
+		{Method: http.MethodGet, Path: "/admin/dormitory/asset/package/online"},
 	}
 }

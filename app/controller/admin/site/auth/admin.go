@@ -339,7 +339,7 @@ func ToAdminByPaginate(ctx *gin.Context) {
 
 	responses.Data.Page = former.GetPage()
 	responses.Data.Size = former.GetSize()
-	responses.Data.Data = []interface{}{}
+	responses.Data.Data = []any{}
 
 	tc := tx
 

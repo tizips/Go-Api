@@ -1,11 +1,11 @@
-package helper
+package str
 
 import (
 	"math/rand"
 	"strings"
 )
 
-func StringSnake(str string) string {
+func Snake(str string) string {
 	data := make([]byte, 0, len(str)*2)
 	j := false
 	num := len(str)
@@ -26,7 +26,7 @@ func StringSnake(str string) string {
 	return strings.ToLower(string(data[:]))
 }
 
-func StringCamel(str string) string {
+func Camel(str string) string {
 	data := make([]byte, 0, len(str))
 	j := false
 	k := false
@@ -50,22 +50,20 @@ func StringCamel(str string) string {
 	return string(data[:])
 }
 
-func StringRandom(length int) string {
+func Random(length int) string {
 
-	str := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-	number := len(str)
+	var templates = []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"}
+	number := len(templates)
 
 	if length <= 0 {
 		length = 32
 	}
 
-	bytes := []byte(str)
-
-	var results = make([]byte, length)
+	var builder strings.Builder
 
 	for i := 0; i < length; i++ {
-		results = append(results, bytes[rand.Intn(number)])
+		builder.WriteString(templates[rand.Intn(number)])
 	}
 
-	return string(results)
+	return builder.String()
 }

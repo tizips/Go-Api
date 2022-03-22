@@ -28,15 +28,15 @@ func InitCasbin() {
 
 }
 
-func NameByAdmin(id interface{}) string {
+func NameByAdmin(id any) string {
 	return fmt.Sprintf("admin:%v", id)
 }
 
-func NameByRole(id interface{}) string {
+func NameByRole(id any) string {
 	return fmt.Sprintf("role:%v", id)
 }
 
-func Root(id interface{}) bool {
+func Root(id any) bool {
 	exist, _ := Casbin.HasRoleForUser(NameByAdmin(id), NameByRole(ROOT))
 	return exist
 }

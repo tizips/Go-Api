@@ -2,6 +2,7 @@ package admin
 
 import (
 	"github.com/gin-gonic/gin"
+	"saas/app/controller/admin/domitory/asset"
 	"saas/app/controller/admin/domitory/basic"
 	"saas/app/controller/admin/domitory/stay"
 )
@@ -96,7 +97,7 @@ func RouteDormitory(route *gin.RouterGroup) {
 			category := stayGroup.Group("category")
 			{
 				category.POST("", stay.DoCategoryByCreate)
-				category.POST("enable", stay.DoCategoryByEnable)
+				category.PUT("enable", stay.DoCategoryByEnable)
 				category.GET("online", stay.ToCategoryByOnline)
 			}
 
@@ -108,6 +109,60 @@ func RouteDormitory(route *gin.RouterGroup) {
 			people := stayGroup.Group("people")
 			{
 				people.POST("", stay.DoPeopleByCreate)
+			}
+		}
+
+		assetGroup := dormitory.Group("asset")
+		{
+			categories := assetGroup.Group("categories")
+			{
+				categories.GET("", asset.ToCategoryByList)
+				categories.PUT(":id", asset.DoCategoryByUpdate)
+				categories.DELETE(":id", asset.DoCategoryByDelete)
+			}
+
+			category := assetGroup.Group("category")
+			{
+				category.POST("", asset.DoCategoryByCreate)
+				category.PUT("enable", asset.DoCategoryByEnable)
+				category.GET("online", asset.ToCategoryByOnline)
+			}
+
+			devices := assetGroup.Group("devices")
+			{
+				devices.GET("", asset.ToDeviceByPaginate)
+				devices.PUT(":id", asset.DoDeviceByUpdate)
+				devices.DELETE(":id", asset.DoDeviceByDelete)
+			}
+
+			device := assetGroup.Group("device")
+			{
+				device.POST("", asset.DoDeviceByCreate)
+				device.GET("online", asset.ToDeviceByOnline)
+			}
+
+			packages := assetGroup.Group("packages")
+			{
+				packages.GET("", asset.ToPackageByPaginate)
+				packages.PUT(":id", asset.DoPackageByUpdate)
+				packages.DELETE(":id", asset.DoPackageByDelete)
+			}
+
+			pack := assetGroup.Group("package")
+			{
+				pack.POST("", asset.DoPackageByCreate)
+				pack.GET("online", asset.ToPackageByOnline)
+			}
+
+			grants := assetGroup.Group("grants")
+			{
+				grants.GET("", asset.ToGrantByPaginate)
+			}
+
+			grant := assetGroup.Group("grant")
+			{
+				grant.POST("", asset.DoGrantByCreate)
+				grant.POST("revoke", asset.DoGrantByRevoke)
 			}
 		}
 	}

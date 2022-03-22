@@ -9,7 +9,7 @@ create table oa_staff
     `hired_date` timestamp                 default null comment '入职时间',
     `remark`     varchar(255)     not null default '' comment '备注',
     `status`     varchar(20)      not null default '' comment '状态：try=试用期；official=正式；wait_depart=待离职；depart=离职;wait_hired=待入职',
-    `is_enable`  tinyint unsigned not null default 0 comment '是否启用：0=否；1=是',
+    `is_enable`  tinyint unsigned not null default 0 comment '是否启用：1=是；2=否；',
     `created_at` timestamp        not null default CURRENT_TIMESTAMP,
     `updated_at` timestamp        not null default CURRENT_TIMESTAMP,
     `deleted_at` timestamp                 default null,

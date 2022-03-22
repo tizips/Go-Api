@@ -1,4 +1,4 @@
-package helper
+package crypt
 
 import (
 	"crypto/md5"

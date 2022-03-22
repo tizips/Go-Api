@@ -8,7 +8,7 @@ import (
 	"os"
 	"path"
 	"reflect"
-	"saas/app/helper"
+	"saas/app/helper/str"
 	"strings"
 )
 
@@ -24,6 +24,7 @@ var Configs struct {
 type System struct {
 	Application *gin.Engine
 	Path        string
+	Public      string
 }
 
 func InitConfig() {
@@ -31,7 +32,8 @@ func InitConfig() {
 	pwd, _ := os.Getwd()
 
 	Configs.System = System{
-		Path: pwd,
+		Path:   pwd,
+		Public: pwd + "/public",
 	}
 
 	cfg, err := ini.Load("conf/env.conf")
@@ -63,7 +65,7 @@ func InitConfig() {
 						for j := 0; j < v.Field(i).Type().NumField(); j++ {
 
 							defaults := v.Field(i).Type().Field(j).Tag.Get("default")
-							name := helper.StringSnake(v.Field(i).Type().Field(j).Name)
+							name := str.Snake(v.Field(i).Type().Field(j).Name)
 							value := cfg.Section(filename).Key(name).Value()
 
 							if value == "" && defaults != "omitempty" {

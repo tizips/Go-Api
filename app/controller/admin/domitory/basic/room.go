@@ -14,7 +14,7 @@ import (
 
 func DoRoomByCreate(ctx *gin.Context) {
 
-	var former basic.DoRoomByCreateForm
+	var former basic.DoRoomByCreateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -32,13 +32,10 @@ func DoRoomByCreate(ctx *gin.Context) {
 		})
 		return
 	}
-
-	var count int64
-	data.Database.Model(model.DorType{}).Where("id", former.Type).Where("is_enable", constant.IsEnableYes).Count(&count)
-	if count <= 0 {
+	if floor.IsPublic == model.DorFloorIsPublicYes {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
-			Message: "房型不存在",
+			Message: "该楼层为公共区域，无法添加",
 		})
 		return
 	}
@@ -46,20 +43,64 @@ func DoRoomByCreate(ctx *gin.Context) {
 	room := model.DorRoom{
 		BuildingId: floor.BuildingId,
 		FloorId:    floor.Id,
-		TypeId:     former.Type,
 		Name:       former.Name,
 		Order:      former.Order,
-		IsFurnish:  former.IsFurnish,
 		IsEnable:   former.IsEnable,
+		IsPublic:   former.IsPublic,
 	}
 
-	if data.Database.Create(&room); room.Id <= 0 {
+	var typ model.DorType
+
+	if former.IsPublic != 1 {
+		data.Database.Preload("Beds").Where("is_enable=?", constant.IsEnableYes).First(&typ, former.Type)
+		if typ.Id <= 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "房型不存在",
+			})
+			return
+		}
+
+		room.TypeId = former.Type
+		room.IsFurnish = former.IsFurnish
+	}
+
+	tx := data.Database.Begin()
+
+	if t := tx.Create(&room); t.RowsAffected <= 0 {
+		tx.Rollback()
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: "添加失败",
 		})
 		return
 	}
+
+	if len(typ.Beds) > 0 {
+		var beds []model.DorBed
+		for _, item := range typ.Beds {
+			beds = append(beds, model.DorBed{
+				BuildingId: room.BuildingId,
+				FloorId:    room.FloorId,
+				RoomId:     room.Id,
+				TypeId:     typ.Id,
+				BedId:      item.Id,
+				Name:       item.Name,
+				IsEnable:   constant.IsEnableYes,
+				IsPublic:   item.IsPublic,
+			})
+		}
+		if t := tx.Create(&beds); t.RowsAffected <= 0 {
+			tx.Rollback()
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40000,
+				Message: "添加失败",
+			})
+			return
+		}
+	}
+
+	tx.Commit()
 
 	ctx.JSON(http.StatusOK, response.Response{
 		Code:    20000,
@@ -79,21 +120,11 @@ func DoRoomByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var former basic.DoRoomByUpdateForm
+	var former basic.DoRoomByUpdateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
-		})
-		return
-	}
-
-	var count int64
-	data.Database.Model(model.DorType{}).Where("id", former.Type).Where("is_enable", constant.IsEnableYes).Count(&count)
-	if count <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "房型不存在",
 		})
 		return
 	}
@@ -108,10 +139,34 @@ func DoRoomByUpdate(ctx *gin.Context) {
 		return
 	}
 
+	if room.IsPublic != 1 {
+		var count int64
+		data.Database.Model(model.DorType{}).Where("id", former.Type).Where("is_enable", constant.IsEnableYes).Count(&count)
+		if count <= 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "房型不存在",
+			})
+			return
+		}
+		room.TypeId = former.Type
+		room.IsFurnish = former.IsFurnish
+	}
+
+	if room.IsEnable != former.IsEnable {
+		var peoples int64 = 0
+		data.Database.Model(model.DorPeople{}).Where("room_id=?", room.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		if peoples > 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "该房间已有人入住，无法上下架",
+			})
+			return
+		}
+	}
+
 	room.Name = former.Name
 	room.Order = former.Order
-	room.TypeId = former.Type
-	room.IsFurnish = former.IsFurnish
 	room.IsEnable = former.IsEnable
 
 	if t := data.Database.Save(&room); t.RowsAffected <= 0 {
@@ -150,13 +205,37 @@ func DoRoomByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if t := data.Database.Delete(&room); t.RowsAffected <= 0 {
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("room_id=?", room.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该房间已有人入住，无法删除",
+		})
+		return
+	}
+
+	tx := data.Database.Begin()
+
+	if t := tx.Delete(&room); t.RowsAffected <= 0 {
+		tx.Rollback()
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: "删除失败",
 		})
 		return
 	}
+
+	if t := tx.Where("room_id=?", room.Id).Delete(&model.DorBed{}); t.Error != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40000,
+			Message: "删除失败",
+		})
+		return
+	}
+
+	tx.Commit()
 
 	ctx.JSON(http.StatusOK, response.Response{
 		Code:    20000,
@@ -167,7 +246,7 @@ func DoRoomByDelete(ctx *gin.Context) {
 
 func DoRoomByEnable(ctx *gin.Context) {
 
-	var former basic.DoRoomByEnableForm
+	var former basic.DoRoomByEnableFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -182,6 +261,16 @@ func DoRoomByEnable(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "未找到该房间",
+		})
+		return
+	}
+
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("room_id=?", room.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该房间已有人入住，无法上下架",
 		})
 		return
 	}
@@ -205,7 +294,7 @@ func DoRoomByEnable(ctx *gin.Context) {
 
 func DoRoomByFurnish(ctx *gin.Context) {
 
-	var former basic.DoRoomByFurnishForm
+	var former basic.DoRoomByFurnishFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -220,6 +309,16 @@ func DoRoomByFurnish(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "未找到该房间",
+		})
+		return
+	}
+
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("room_id=?", room.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该房间已有人入住，无法上下架",
 		})
 		return
 	}
@@ -243,8 +342,8 @@ func DoRoomByFurnish(ctx *gin.Context) {
 
 func ToRoomByPaginate(ctx *gin.Context) {
 
-	var former basic.ToRoomByPaginateForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
+	var query basic.ToRoomByPaginateFormer
+	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
@@ -257,20 +356,24 @@ func ToRoomByPaginate(ctx *gin.Context) {
 		Message: "Success",
 	}
 
-	responses.Data.Size = former.GetSize()
-	responses.Data.Page = former.GetPage()
-	responses.Data.Data = []interface{}{}
+	responses.Data.Size = query.GetSize()
+	responses.Data.Page = query.GetPage()
+	responses.Data.Data = []any{}
 
 	tx := data.Database
 
-	if former.Floor > 0 {
-		tx = tx.Where("floor_id", former.Floor)
-	} else if former.Building > 0 {
-		tx = tx.Where("building_id", former.Building)
+	if query.Floor > 0 {
+		tx = tx.Where("floor_id=?", query.Floor)
+	} else if query.Building > 0 {
+		tx = tx.Where("building_id", query.Building)
 	}
 
-	if former.Room != "" {
-		tx = tx.Where("name like ?", "%"+former.Room+"%")
+	if query.IsPublic > 0 {
+		tx = tx.Where("is_public=?", query.IsPublic)
+	}
+
+	if query.Room != "" {
+		tx = tx.Where("name like ?", "%"+query.Room+"%")
 	}
 
 	tc := tx
@@ -287,6 +390,8 @@ func ToRoomByPaginate(ctx *gin.Context) {
 			Preload("Type").
 			Order("`order` asc").
 			Order("`id` desc").
+			Offset(query.GetOffset()).
+			Limit(query.GetLimit()).
 			Find(&rooms)
 
 		for _, item := range rooms {
@@ -300,6 +405,7 @@ func ToRoomByPaginate(ctx *gin.Context) {
 				Order:     item.Order,
 				IsFurnish: item.IsFurnish,
 				IsEnable:  item.IsEnable,
+				IsPublic:  item.IsPublic,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
 			})
 		}
@@ -310,8 +416,8 @@ func ToRoomByPaginate(ctx *gin.Context) {
 
 func ToRoomByOnline(ctx *gin.Context) {
 
-	var former basic.ToRoomByOnlineForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
+	var query basic.ToRoomByOnlineFormer
+	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
@@ -322,17 +428,26 @@ func ToRoomByOnline(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
+	}
+
+	tx := data.Database.Where("floor_id=?", query.Floor)
+	if query.IsPublic > 0 {
+		tx = tx.Where("is_public=?", query.IsPublic)
 	}
 
 	var rooms []model.DorRoom
-	data.Database.Where("floor_id", former.Floor).Order("`order` asc").Order("`id` desc").Find(&rooms)
+	tx.Order("`order` asc").Order("`id` desc").Find(&rooms)
 
 	for _, item := range rooms {
-		responses.Data = append(responses.Data, basicResponse.ToRoomByOnlineResponse{
+		items := basicResponse.ToRoomByOnlineResponse{
 			Id:   item.Id,
 			Name: item.Name,
-		})
+		}
+		if query.WithPublic {
+			items.IsPublic = item.IsPublic
+		}
+		responses.Data = append(responses.Data, items)
 	}
 
 	ctx.JSON(http.StatusOK, responses)

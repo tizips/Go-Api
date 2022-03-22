@@ -322,7 +322,7 @@ func ToPermissionByTree(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	results := authService.TreePermission(former.Module, false, false)
@@ -347,7 +347,7 @@ func ToPermissionByParents(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	results := authService.TreePermission(former.Module, true, true)
@@ -363,7 +363,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var results []authResponse.TreePermissionResponse

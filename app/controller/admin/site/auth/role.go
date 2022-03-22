@@ -489,7 +489,7 @@ func ToRoleByPaginate(ctx *gin.Context) {
 
 	responses.Data.Size = former.GetSize()
 	responses.Data.Page = former.GetPage()
-	responses.Data.Data = []interface{}{}
+	responses.Data.Data = []any{}
 
 	tc := tx
 

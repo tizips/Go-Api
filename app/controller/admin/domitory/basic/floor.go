@@ -23,12 +23,19 @@ func DoFloorByCreate(ctx *gin.Context) {
 		return
 	}
 
-	var count int64
-	data.Database.Model(model.DorBuilding{}).Where("id", former.Building).Where("is_enable", constant.IsEnableYes).Count(&count)
-	if count <= 0 {
+	var building model.DorBuilding
+	data.Database.Where("is_enable=?", constant.IsEnableYes).First(&building, former.Building)
+	if building.Id <= 0 {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "楼栋不存在",
+		})
+		return
+	}
+	if building.IsPublic == model.DorBuildingIsPublicYes {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该楼栋为公共区域，无法添加",
 		})
 		return
 	}
@@ -38,6 +45,7 @@ func DoFloorByCreate(ctx *gin.Context) {
 		BuildingId: former.Building,
 		Order:      former.Order,
 		IsEnable:   former.IsEnable,
+		IsPublic:   former.IsPublic,
 	}
 
 	if data.Database.Create(&floor); floor.Id <= 0 {
@@ -95,6 +103,18 @@ func DoFloorByUpdate(ctx *gin.Context) {
 		return
 	}
 
+	if floor.IsEnable != former.IsEnable {
+		var peoples int64 = 0
+		data.Database.Model(model.DorPeople{}).Where("floor_id=?", floor.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		if peoples > 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "该楼层已有人入住，无法上下架",
+			})
+			return
+		}
+	}
+
 	floor.BuildingId = former.Building
 	floor.Name = former.Name
 	floor.Order = former.Order
@@ -136,13 +156,46 @@ func DoFloorByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if t := data.Database.Delete(&floor); t.RowsAffected <= 0 {
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("floor_id=?", floor.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该楼层已有人入住，无法删除",
+		})
+		return
+	}
+
+	tx := data.Database.Begin()
+
+	if t := tx.Delete(&floor); t.RowsAffected <= 0 {
+		tx.Rollback()
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: "删除失败",
 		})
 		return
 	}
+
+	if t := tx.Where("floor_id=?", floor.Id).Delete(&model.DorRoom{}); t.Error != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40000,
+			Message: "删除失败",
+		})
+		return
+	}
+
+	if t := tx.Where("floor_id=?", floor.Id).Delete(&model.DorBed{}); t.Error != nil {
+		tx.Rollback()
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40000,
+			Message: "删除失败",
+		})
+		return
+	}
+
+	tx.Commit()
 
 	ctx.JSON(http.StatusOK, response.Response{
 		Code:    20000,
@@ -168,6 +221,16 @@ func DoFloorByEnable(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "未找到该楼层",
+		})
+		return
+	}
+
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("floor_id=?", floor.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该楼层已有人入住，无法上下架",
 		})
 		return
 	}
@@ -203,7 +266,7 @@ func ToFloorByList(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
 	}
 
 	var floors []model.DorFloor
@@ -221,6 +284,7 @@ func ToFloorByList(ctx *gin.Context) {
 			Building:  item.Building.Name,
 			Order:     item.Order,
 			IsEnable:  item.IsEnable,
+			IsPublic:  item.IsPublic,
 			CreatedAt: item.CreatedAt.ToDateTimeString(),
 		})
 	}
@@ -230,8 +294,8 @@ func ToFloorByList(ctx *gin.Context) {
 
 func ToFloorByOnline(ctx *gin.Context) {
 
-	var former basic.ToFloorByOnlineForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
+	var query basic.ToFloorByOnlineForm
+	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
@@ -242,17 +306,28 @@ func ToFloorByOnline(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
+	}
+
+	tx := data.Database.Where("building_id=?", query.Building)
+
+	if query.IsPublic > 0 {
+		tx = tx.Where("is_public=?", query.IsPublic)
 	}
 
 	var floors []model.DorFloor
-	data.Database.Where("building_id", former.Building).Order("`order` asc").Order("`id` desc").Find(&floors)
+	tx.Order("`order` asc").Order("`id` desc").Find(&floors)
 
 	for _, item := range floors {
-		responses.Data = append(responses.Data, basicResponse.ToFloorByOnlineResponse{
-			Id:   item.Id,
-			Name: item.Name,
-		})
+		items := basicResponse.ToFloorByOnlineResponse{
+			Id:       item.Id,
+			Name:     item.Name,
+			IsPublic: item.IsPublic,
+		}
+		if query.WithPublic {
+			items.IsPublic = item.IsPublic
+		}
+		responses.Data = append(responses.Data, items)
 	}
 
 	ctx.JSON(http.StatusOK, responses)

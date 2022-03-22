@@ -14,7 +14,7 @@ import (
 
 func DoBedByCreate(ctx *gin.Context) {
 
-	var former basic.DoBedByCreateForm
+	var former basic.DoBedByCreateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -24,11 +24,18 @@ func DoBedByCreate(ctx *gin.Context) {
 	}
 
 	var room model.DorRoom
-	data.Database.Where("is_enable", constant.IsEnableYes).First(&room, former.Room)
+	data.Database.Where("is_enable=?", constant.IsEnableYes).First(&room, former.Room)
 	if room.Id <= 0 {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "房间不存在",
+		})
+		return
+	}
+	if room.IsPublic == model.DorBedIsPublicYes {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该房间为公共区域，无法添加",
 		})
 		return
 	}
@@ -41,6 +48,7 @@ func DoBedByCreate(ctx *gin.Context) {
 		Name:       former.Name,
 		Order:      former.Order,
 		IsEnable:   former.IsEnable,
+		IsPublic:   former.IsPublic,
 	}
 
 	if data.Database.Create(&bed); room.Id <= 0 {
@@ -69,7 +77,7 @@ func DoBedByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var former basic.DoBedByUpdateForm
+	var former basic.DoBedByUpdateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -86,6 +94,18 @@ func DoBedByUpdate(ctx *gin.Context) {
 			Message: "未找到该床位",
 		})
 		return
+	}
+
+	if bed.IsEnable != former.IsEnable {
+		var peoples int64 = 0
+		data.Database.Model(model.DorPeople{}).Where("bed_id=?", bed.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		if peoples > 0 {
+			ctx.JSON(http.StatusOK, response.Response{
+				Code:    40400,
+				Message: "该床位已有人入住，无法上下架",
+			})
+			return
+		}
 	}
 
 	bed.Name = former.Name
@@ -128,6 +148,16 @@ func DoBedByDelete(ctx *gin.Context) {
 		return
 	}
 
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("bed_id=?", bed.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该床位已有人入住，无法删除",
+		})
+		return
+	}
+
 	if t := data.Database.Delete(&bed); t.RowsAffected <= 0 {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -145,7 +175,7 @@ func DoBedByDelete(ctx *gin.Context) {
 
 func DoBedByEnable(ctx *gin.Context) {
 
-	var former basic.DoBedByEnableForm
+	var former basic.DoBedByEnableFormer
 	if err := ctx.ShouldBind(&former); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
@@ -160,6 +190,16 @@ func DoBedByEnable(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
 			Message: "未找到该床位",
+		})
+		return
+	}
+
+	var peoples int64 = 0
+	data.Database.Model(model.DorPeople{}).Where("bed_id=?", bed.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	if peoples > 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "该床位已有人入住，无法上下架",
 		})
 		return
 	}
@@ -183,8 +223,8 @@ func DoBedByEnable(ctx *gin.Context) {
 
 func ToBedByPaginate(ctx *gin.Context) {
 
-	var former basic.ToBedByPaginateForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
+	var query basic.ToBedByPaginateFormer
+	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
@@ -197,22 +237,22 @@ func ToBedByPaginate(ctx *gin.Context) {
 		Message: "Success",
 	}
 
-	responses.Data.Size = former.GetSize()
-	responses.Data.Page = former.GetPage()
-	responses.Data.Data = []interface{}{}
+	responses.Data.Size = query.GetSize()
+	responses.Data.Page = query.GetPage()
+	responses.Data.Data = []any{}
 
 	tx := data.Database
 
-	if former.Room > 0 {
-		tx = tx.Where("room_id", former.Floor)
-	} else if former.Floor > 0 {
-		tx = tx.Where("floor_id", former.Floor)
-	} else if former.Building > 0 {
-		tx = tx.Where("building_id", former.Building)
+	if query.Room > 0 {
+		tx = tx.Where("room_id", query.Floor)
+	} else if query.Floor > 0 {
+		tx = tx.Where("floor_id", query.Floor)
+	} else if query.Building > 0 {
+		tx = tx.Where("building_id", query.Building)
 	}
 
-	if former.Bed != "" {
-		tx = tx.Where("name like ?", "%"+former.Bed+"%")
+	if query.Bed != "" {
+		tx = tx.Where("name like ?", "%"+query.Bed+"%")
 	}
 
 	tc := tx
@@ -229,6 +269,8 @@ func ToBedByPaginate(ctx *gin.Context) {
 			Preload("Room").
 			Order("`order` asc").
 			Order("`id` desc").
+			Offset(query.GetOffset()).
+			Limit(query.GetLimit()).
 			Find(&beds)
 
 		for _, item := range beds {
@@ -240,6 +282,7 @@ func ToBedByPaginate(ctx *gin.Context) {
 				Room:      item.Room.Name,
 				Order:     item.Order,
 				IsEnable:  item.IsEnable,
+				IsPublic:  item.IsPublic,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
 			})
 		}
@@ -250,8 +293,8 @@ func ToBedByPaginate(ctx *gin.Context) {
 
 func ToBedByOnline(ctx *gin.Context) {
 
-	var former basic.ToBedByOnlineForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
+	var query basic.ToBedByOnlineFormer
+	if err := ctx.ShouldBindQuery(&query); err != nil {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40000,
 			Message: err.Error(),
@@ -262,17 +305,27 @@ func ToBedByOnline(ctx *gin.Context) {
 	responses := response.Responses{
 		Code:    20000,
 		Message: "Success",
-		Data:    []interface{}{},
+		Data:    []any{},
+	}
+
+	tx := data.Database.Where("room_id=?", query.Room)
+
+	if query.IsPublic > 0 {
+		tx = tx.Where("is_public=?", query.IsPublic)
 	}
 
 	var beds []model.DorBed
-	data.Database.Where("room_id", former.Room).Order("`order` asc").Order("`id` desc").Find(&beds)
+	tx.Order("`order` asc").Order("`id` desc").Find(&beds)
 
 	for _, item := range beds {
-		responses.Data = append(responses.Data, basicResponse.ToBedByOnlineResponse{
+		items := basicResponse.ToBedByOnlineResponse{
 			Id:   item.Id,
 			Name: item.Name,
-		})
+		}
+		if query.WithPublic {
+			items.IsPublic = item.IsPublic
+		}
+		responses.Data = append(responses.Data, items)
 	}
 
 	ctx.JSON(http.StatusOK, responses)

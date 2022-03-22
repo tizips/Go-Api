@@ -1,4 +1,4 @@
-create table dor_rule
+create table dor_type_expense
 (
     `id`                  int unsigned not null auto_increment,
     `type_id`             int unsigned not null comment '房型ID',

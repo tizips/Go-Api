@@ -2,6 +2,7 @@
 
 # production
 public/upload
+public/logs
 conf/env.conf
 
 .idea

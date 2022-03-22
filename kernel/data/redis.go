@@ -28,8 +28,8 @@ func InitRedis() {
 	})
 }
 
-func StructToMap(items interface{}) map[string]interface{} {
-	res := map[string]interface{}{}
+func StructToMap(items any) map[string]any {
+	res := map[string]any{}
 	if items == nil {
 		return res
 	}
@@ -48,7 +48,7 @@ func StructToMap(items interface{}) map[string]interface{} {
 	return res
 }
 
-func Key(table string, id interface{}) string {
+func Key(table string, id any) string {
 	return fmt.Sprintf("%s:%s:%v", config.Configs.Cache.Prefix, table, id)
 }
 
