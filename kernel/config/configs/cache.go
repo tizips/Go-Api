@@ -1,6 +1,6 @@
-package config
+package configs
 
 type Cache struct {
 	Prefix string `default:"cache"`
-	Ttl    string `default:"86400"`
+	Ttl    int32  `default:"86400"`
 }

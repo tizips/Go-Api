@@ -2,7 +2,6 @@ package asset
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/app/form/admin/dormitory/asset"
 	"saas/app/model"
 	assetResponse "saas/app/response/admin/dormitory/asset"
@@ -15,10 +14,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 
 	var former asset.DoPackageByCreateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -29,7 +25,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorDevice
-	data.Database.Where("id in (?)", deviceIds).Find(&devices)
+	data.Database.Where("`id` in (?)", deviceIds).Find(&devices)
 
 	for _, item := range former.Devices {
 		mark := true
@@ -39,19 +35,13 @@ func DoPackageByCreate(ctx *gin.Context) {
 			}
 		}
 		if mark {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "部分设备未找到",
-			})
+			response.ToResponseByNotFound(ctx, "部分设备未找到")
 			return
 		}
 	}
 
 	if len(devices) != len(former.Devices) {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "部分设备选择重复",
-		})
+		response.ToResponseByFail(ctx, "部分设备选择重复")
 		return
 	}
 
@@ -63,10 +53,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 
 	if t := tx.Create(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
@@ -81,49 +68,33 @@ func DoPackageByCreate(ctx *gin.Context) {
 
 	if t := tx.Create(&bindings); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoPackageByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "打包ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var former asset.DoPackageByUpdateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+	if err = ctx.ShouldBind(&former); err != nil {
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var pack model.DorPackage
 	data.Database.Preload("Details").First(&pack, id)
 	if pack.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该打包数据",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该打包数据")
 		return
 	}
 
@@ -144,19 +115,13 @@ func DoPackageByUpdate(ctx *gin.Context) {
 			}
 		}
 		if mark {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "部分设备未找到",
-			})
+			response.ToResponseByNotFound(ctx, "部分设备未找到")
 			return
 		}
 	}
 
 	if len(devices) != len(former.Devices) {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "部分设备选择重复",
-		})
+		response.ToResponseByFail(ctx, "部分设备选择重复")
 		return
 	}
 
@@ -201,10 +166,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 
 		if t := tx.Save(&pack); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 	}
@@ -212,10 +174,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	if len(creates) > 0 {
 		if t := tx.Save(&creates); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 	}
@@ -223,10 +182,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		for _, item := range updates {
 			if t := tx.Save(&item); t.RowsAffected <= 0 {
 				tx.Rollback()
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "修改失败",
-				})
+				response.ToResponseByFail(ctx, "修改失败")
 				return
 			}
 		}
@@ -234,41 +190,28 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	if len(deletes) > 0 {
 		if t := tx.Delete(&model.DorPackageDetail{}, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoPackageByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "打包ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var pack model.DorPackage
 	data.Database.First(&pack, id)
 	if pack.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该打包数据",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该打包数据")
 		return
 	}
 
@@ -276,65 +219,50 @@ func DoPackageByDelete(ctx *gin.Context) {
 
 	if t := tx.Delete(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
-	if t := tx.Where("package_id=?", pack.Id).Delete(&model.DorPackageDetail{}); t.RowsAffected <= 0 {
+	if t := tx.Where("`package_id`=?", pack.Id).Delete(&model.DorPackageDetail{}); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToPackageByPaginate(ctx *gin.Context) {
 
 	var query asset.ToPackageByPaginateForm
 	if err := ctx.ShouldBindQuery(&query); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	responses := response.Paginate{
-		Code:    20000,
-		Message: "Success",
+		Total: 0,
+		Page:  query.GetPage(),
+		Size:  query.GetSize(),
+		Data:  make([]any, 0),
 	}
-
-	responses.Data.Page = query.GetPage()
-	responses.Data.Size = query.GetSize()
-	responses.Data.Data = []any{}
 
 	tx := data.Database
 
 	if query.Keyword != "" {
-		tx = tx.Where("name like ?", "%"+query.Keyword+"%")
+		tx = tx.Where("`name` like ?", "%"+query.Keyword+"%")
 	}
 
 	tc := tx
-	tc.Table(model.TableDorPackage).Count(&responses.Data.Total)
+	tc.Model(&model.DorPackage{}).Count(&responses.Total)
 
-	if responses.Data.Total > 0 {
+	if responses.Total > 0 {
 
 		var packages []model.DorPackage
 
-		tx.Preload("Details").Preload("Details.Device").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&packages)
+		tx.Preload("Details.Device").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&packages)
 
 		for _, item := range packages {
 			items := assetResponse.ToPackageByPaginateResponse{
@@ -350,31 +278,26 @@ func ToPackageByPaginate(ctx *gin.Context) {
 					Number:   value.Number,
 				})
 			}
-			responses.Data.Data = append(responses.Data.Data, items)
+			responses.Data = append(responses.Data, items)
 		}
 	}
 
-	ctx.JSON(http.StatusOK, responses)
-
+	response.ToResponseBySuccessPaginate(ctx, responses)
 }
 
 func ToPackageByOnline(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	var packages []model.DorPackage
 
 	data.Database.Order("`id` desc").Find(&packages)
 	for _, item := range packages {
-		responses.Data = append(responses.Data, assetResponse.ToPackageByOnlineResponse{
+		responses = append(responses, assetResponse.ToPackageByOnlineResponse{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }

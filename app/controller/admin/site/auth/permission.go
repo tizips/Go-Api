@@ -18,20 +18,14 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	var former auth.DoPermissionByCreateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
-	data.Database.Where("is_enable=?", constant.IsEnableYes).First(&module, former.Module)
+	data.Database.Where("`is_enable`=?", constant.IsEnableYes).First(&module, former.Module)
 	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块不存在",
-		})
+		response.ToResponseByNotFound(ctx, "模块不存在")
 		return
 	}
 
@@ -42,24 +36,15 @@ func DoPermissionByCreate(ctx *gin.Context) {
 	if former.Parent > 0 {
 		data.Database.First(&parent, former.Parent)
 		if parent.Id <= 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "父级权限不存在",
-			})
+			response.ToResponseByFail(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "该父级已是最低等级，无法继续添加",
-			})
+			response.ToResponseByFail(ctx, "该权限已是最低等级，无法继续添加")
 			return
 		} else if parent.ParentI1 > 0 {
 
 			if former.Method == "" || former.Path == "" {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "接口不能为空",
-				})
+				response.ToResponseByFail(ctx, "接口不能为空")
 				return
 			}
 
@@ -74,12 +59,9 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	if former.Method != "" && former.Path != "" {
 		var count int64
-		data.Database.Model(model.SysPermission{}).Where("method = ?", former.Method).Where("path = ?", former.Path).Count(&count)
+		data.Database.Model(model.SysPermission{}).Where("`method`=? and `path`=?", former.Method, former.Path).Count(&count)
 		if count > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "权限已存在",
-			})
+			response.ToResponseByFail(ctx, "权限已存在")
 			return
 		}
 	}
@@ -96,61 +78,44 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	data.Database.Create(&permission)
 	if permission.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoPermissionByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "权限ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	var former auth.DoPermissionByUpdateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var permission model.SysPermission
 	data.Database.First(&permission, id)
 	if permission.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "权限不存在",
-		})
+		response.ToResponseByNotFound(ctx, "权限不存在")
 		return
 	}
 
 	method := permission.Method
 	path := permission.Path
 
-	var module model.SysModule
-	data.Database.Where("is_enable=?", constant.IsEnableYes).First(&module, former.Module)
-	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块不存在",
-		})
-		return
+	if permission.ModuleId != former.Module {
+		var module model.SysModule
+		data.Database.Where("`is_enable`=?", constant.IsEnableYes).First(&module, former.Module)
+		if module.Id <= 0 {
+			response.ToResponseByNotFound(ctx, "模块不存在")
+			return
+		}
 	}
 
 	var parent1, parent2 uint
@@ -160,24 +125,15 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	if former.Parent > 0 {
 		data.Database.First(&parent, former.Parent)
 		if parent.Id <= 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "父级权限不存在",
-			})
+			response.ToResponseByNotFound(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "该父级已是最低等级，无法继续添加",
-			})
+			response.ToResponseByFail(ctx, "该权限已是最低等级，无法继续添加")
 			return
 		} else if parent.ParentI1 > 0 {
 
 			if former.Method == "" || former.Path == "" {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "接口不能为空",
-				})
+				response.ToResponseByFail(ctx, "接口不能为空")
 				return
 			}
 
@@ -190,12 +146,9 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if former.Method != "" && former.Path != "" {
 		var count int64
-		data.Database.Model(model.SysPermission{}).Where("id <> ?", id).Where("method = ?", former.Method).Where("path = ?", former.Path).Count(&count)
+		data.Database.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, former.Method, former.Path).Count(&count)
 		if count > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "权限已存在",
-			})
+			response.ToResponseByFail(ctx, "权限已存在")
 			return
 		}
 	}
@@ -211,10 +164,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if t := data.Database.Save(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "修改失败",
-		})
+		response.ToResponseByFail(ctx, "修改失败")
 		return
 	}
 
@@ -222,10 +172,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 		if method != "" || path != "" {
 			if _, err := authorize.Casbin.DeletePermission(method, path); err != nil {
 				tx.Rollback()
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "修改失败",
-				})
+				response.ToResponseByFail(ctx, "修改失败")
 				return
 			}
 		}
@@ -237,10 +184,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 				for _, item := range bindings {
 					if _, err := authorize.Casbin.AddPermissionForUser(authorize.NameByRole(item.RoleId), permission.Method, permission.Path); err != nil {
 						tx.Rollback()
-						ctx.JSON(http.StatusOK, response.Response{
-							Code:    60000,
-							Message: "修改失败",
-						})
+						response.ToResponseByFail(ctx, "修改失败")
 						return
 					}
 				}
@@ -251,31 +195,21 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoPermissionByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "权限ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	var permission model.SysPermission
 	data.Database.First(&permission, id)
 	if permission.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "权限不存在",
-		})
+		response.ToResponseByFail(ctx, "权限不存在")
 		return
 	}
 
@@ -283,54 +217,37 @@ func DoPermissionByDelete(ctx *gin.Context) {
 
 	if t := data.Database.Delete(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	if _, err := authorize.Casbin.DeletePermission(permission.Method, permission.Path); err != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToPermissionByTree(ctx *gin.Context) {
 
 	var former auth.ToPermissionByTreeForm
 	if err := ctx.ShouldBindQuery(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Responses{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	results := authService.TreePermission(former.Module, false, false)
 	for _, item := range results {
-		responses.Data = append(responses.Data, item)
+		responses = append(responses, item)
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }
 
 func ToPermissionByParents(ctx *gin.Context) {
@@ -344,27 +261,19 @@ func ToPermissionByParents(ctx *gin.Context) {
 		return
 	}
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	results := authService.TreePermission(former.Module, true, true)
 	for _, item := range results {
-		responses.Data = append(responses.Data, item)
+		responses = append(responses, item)
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }
 
 func ToPermissionBySelf(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	var results []authResponse.TreePermissionResponse
 
@@ -462,9 +371,9 @@ func ToPermissionBySelf(ctx *gin.Context) {
 		}
 
 		for _, item := range results {
-			responses.Data = append(responses.Data, item)
+			responses = append(responses, item)
 		}
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }

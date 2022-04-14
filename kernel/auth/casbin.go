@@ -14,13 +14,13 @@ var Casbin *casbin.Enforcer
 
 func InitCasbin() {
 
-	a, err := adapter.NewAdapterByDBUseTableName(data.Database, config.Configs.Database.Prefix, "sys_casbin")
+	a, err := adapter.NewAdapterByDBUseTableName(data.Database, config.Values.Database.Prefix, "sys_casbin")
 	if err != nil {
 		fmt.Printf("Casbin new adapter error:%v", err)
 		return
 	}
 
-	Casbin, err = casbin.NewEnforcer("conf/casbin.conf", a)
+	Casbin, err = casbin.NewEnforcer(config.Application.Path+"/conf/casbin.conf", a)
 	if err != nil {
 		fmt.Printf("Casbin new enforcer error:%v", err)
 		return

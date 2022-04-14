@@ -3,7 +3,7 @@ package basic
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"saas/app/constant"
 	"saas/app/form/admin/dormitory/basic"
 	"saas/app/model"
 	basicResponse "saas/app/response/admin/dormitory/basic"
@@ -16,10 +16,7 @@ func DoTypeByCreate(ctx *gin.Context) {
 
 	var former basic.DoTypeByCreateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -33,10 +30,7 @@ func DoTypeByCreate(ctx *gin.Context) {
 
 	if t := tx.Create(&typ); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
@@ -47,202 +41,137 @@ func DoTypeByCreate(ctx *gin.Context) {
 		}
 		if t := tx.Create(&beds); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40000,
-				Message: "添加失败",
-			})
+			response.ToResponseByFail(ctx, "添加失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoTypeByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "房型ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var former basic.DoTypeByUpdateFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+	if err = ctx.ShouldBind(&former); err != nil {
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
-	var typ model.DorType
-	data.Database.First(&typ, id)
-	if typ.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该房型",
-		})
+	var typing model.DorType
+	data.Database.First(&typing, id)
+	if typing.Id <= 0 {
+		response.ToResponseByNotFound(ctx, "未找到该房型")
 		return
 	}
 
-	if typ.IsEnable != former.IsEnable {
+	if typing.IsEnable != former.IsEnable {
 		var peoples int64 = 0
-		data.Database.Model(model.DorPeople{}).Where("type_id=?", typ.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		data.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "该房型已有人入住，无法上下架",
-			})
+			response.ToResponseByFail(ctx, "该房型已有人入住，无法上下架")
 			return
 		}
 	}
 
-	typ.Name = former.Name
-	typ.Order = former.Order
-	typ.IsEnable = former.IsEnable
+	typing.Name = former.Name
+	typing.Order = former.Order
+	typing.IsEnable = former.IsEnable
 
-	if t := data.Database.Save(&typ); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "修改失败",
-		})
+	if t := data.Database.Save(&typing); t.RowsAffected <= 0 {
+		response.ToResponseByFail(ctx, "修改失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoTypeByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "房型ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var typ model.DorType
-	data.Database.First(&typ, id)
-	if typ.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该房型",
-		})
+	var typing model.DorType
+	data.Database.First(&typing, id)
+	if typing.Id <= 0 {
+		response.ToResponseByNotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("type_id=?", typ.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	data.Database.Model(model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "该房型已有人入住，无法删除",
-		})
+		response.ToResponseByFail(ctx, "该房型已有人入住，无法删除")
 		return
 	}
 
 	tx := data.Database.Begin()
 
-	if t := tx.Delete(&typ); t.RowsAffected <= 0 {
+	if t := tx.Delete(&typing); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
-	if t := tx.Where("type_id=?", typ.Id).Delete(&model.DorTypeBed{}); t.Error != nil {
+	if t := tx.Where("type_id=?", typing.Id).Delete(&model.DorTypeBed{}); t.Error != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoTypeByEnable(ctx *gin.Context) {
 
 	var former basic.DoTypeByEnableFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var typ model.DorType
 	data.Database.First(&typ, former.Id)
 	if typ.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该房型",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("type_id=?", typ.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	data.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typ.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "该房型已有人入住，无法上下架",
-		})
+		response.ToResponseByFail(ctx, "该房型已有人入住，无法上下架")
 		return
 	}
 
 	typ.IsEnable = former.IsEnable
 
 	if t := data.Database.Save(&typ); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "启禁失败",
-		})
+		response.ToResponseByFail(ctx, "启禁失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToTypeByList(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	var types []model.DorType
-	data.Database.Preload("Beds").Order("`order` asc").Order("`id` desc").Find(&types)
+	data.Database.Preload("Beds").Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
 		items := basicResponse.ToTypeByListResponse{
@@ -258,32 +187,26 @@ func ToTypeByList(ctx *gin.Context) {
 				IsPublic: value.IsPublic,
 			})
 		}
-		responses.Data = append(responses.Data, items)
+		responses = append(responses, items)
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }
 
 func ToTypeByOnline(ctx *gin.Context) {
 
 	var query basic.ToTypeByOnlineFormer
 	if err := ctx.ShouldBindQuery(&query); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	var types []model.DorType
 
-	tx := data.Database
+	tx := data.Database.Where("`is_enable`=?", constant.IsEnableYes)
+
 	if query.WithBed || query.MustBed {
 		tx = tx.Preload("Beds")
 	}
@@ -295,7 +218,8 @@ func ToTypeByOnline(ctx *gin.Context) {
 			Where(fmt.Sprintf("%s.deleted_at is null", model.TableDorTypeBed)),
 		)
 	}
-	tx.Order("`order` asc").Order("`id` desc").Find(&types)
+
+	tx.Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
 		items := basicResponse.ToTypeByOnlineResponse{
@@ -310,8 +234,8 @@ func ToTypeByOnline(ctx *gin.Context) {
 				})
 			}
 		}
-		responses.Data = append(responses.Data, items)
+		responses = append(responses, items)
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }

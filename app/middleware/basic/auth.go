@@ -1,33 +1,32 @@
 package basic
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"saas/app/service/basic"
 	"saas/kernel/auth"
 	"saas/kernel/response"
 )
 
-func AuthMiddleware(issue string) gin.HandlerFunc {
+func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		if !auth.Check(ctx) {
 			ctx.Abort()
-			ctx.JSON(http.StatusUnauthorized, response.Response{
-				Code:    40100,
-				Message: "Unauthorized1",
-			})
+			response.ToResponseByUnauthorized(ctx)
 			return
 		}
 
-		claims := ctx.MustGet("JWT").(jwt.StandardClaims)
+		claims := auth.Jwt(ctx)
 
-		if !claims.VerifyIssuer(issue, true) {
+		if !claims.VerifyIssuer("admin", true) {
 			ctx.Abort()
-			ctx.JSON(http.StatusUnauthorized, response.Response{
-				Code:    40100,
-				Message: "Unauthorized2",
-			})
+			response.ToResponseByUnauthorized(ctx)
+			return
+		}
+
+		if !basic.CheckJwt(ctx, "admin", *claims) {
+			ctx.Abort()
+			response.ToResponseByUnauthorized(ctx)
 			return
 		}
 

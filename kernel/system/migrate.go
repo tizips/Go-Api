@@ -26,7 +26,7 @@ func Migrate() {
 
 func connect() *migrate.Migrate {
 
-	db, err := sql.Open(config.Configs.Database.Driver, data.GetDns())
+	db, err := sql.Open(config.Values.Database.Driver, data.GetDns())
 	if err != nil {
 		fmt.Printf("Mysql connect fail:%s", err.Error())
 		os.Exit(1)

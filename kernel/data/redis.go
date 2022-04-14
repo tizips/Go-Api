@@ -5,7 +5,6 @@ import (
 	"github.com/go-redis/redis/v8"
 	"reflect"
 	"saas/kernel/config"
-	"strconv"
 	"time"
 )
 
@@ -13,15 +12,10 @@ var Redis *redis.Client
 
 func InitRedis() {
 
-	db, err := strconv.Atoi(config.Configs.Redis.Db)
-	if err != nil {
-		db = 0
-	}
-
 	Redis = redis.NewClient(&redis.Options{
-		Addr:        fmt.Sprintf("%s:%s", config.Configs.Redis.Host, config.Configs.Redis.Port),
-		Password:    config.Configs.Redis.Auth,
-		DB:          db,
+		Addr:        fmt.Sprintf("%s:%d", config.Values.Redis.Host, config.Values.Redis.Port),
+		Password:    config.Values.Redis.Auth,
+		DB:          config.Values.Redis.Db,
 		MaxConnAge:  100,
 		PoolTimeout: 3,
 		IdleTimeout: 60,
@@ -49,13 +43,9 @@ func StructToMap(items any) map[string]any {
 }
 
 func Key(table string, id any) string {
-	return fmt.Sprintf("%s:%s:%v", config.Configs.Cache.Prefix, table, id)
+	return fmt.Sprintf("%s:%s:%v", config.Values.Cache.Prefix, table, id)
 }
 
 func Ttl() time.Duration {
-	ttl, err := strconv.Atoi(config.Configs.Cache.Ttl)
-	if err != nil {
-		ttl = 86400
-	}
-	return time.Duration(ttl) * time.Second
+	return time.Duration(config.Values.Cache.Ttl) * time.Second
 }

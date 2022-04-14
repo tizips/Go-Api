@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/ini.v1"
-	"io/ioutil"
 	"os"
-	"path"
 	"reflect"
 	"saas/app/helper/str"
-	"strings"
+	"saas/kernel/config/configs"
+	"strconv"
 )
 
-var Configs struct {
-	System   System
-	Database Database
-	Server   Server
-	Redis    Redis
-	Jwt      Jwt
-	Cache    Cache
+var Application system
+
+var Values struct {
+	Server   configs.Server
+	Database configs.Database
+	Redis    configs.Redis
+	Jwt      configs.Jwt
+	Cache    configs.Cache
 }
 
-type System struct {
+type system struct {
 	Application *gin.Engine
 	Path        string
 	Public      string
@@ -31,51 +31,68 @@ func InitConfig() {
 
 	pwd, _ := os.Getwd()
 
-	Configs.System = System{
+	Application = system{
 		Path:   pwd,
 		Public: pwd + "/public",
 	}
 
-	cfg, err := ini.Load("conf/env.conf")
+	handler()
+
+}
+
+func handler() {
+
+	cfg, err := ini.Load(Application.Path + "/conf/env.conf")
 
 	if err != nil {
 		fmt.Printf("Fail to load env file: %v", err)
 		os.Exit(1)
 	}
 
-	files, err := ioutil.ReadDir(Configs.System.Path + "/kernel/config")
+	e := reflect.ValueOf(&Values).Elem()
 
-	if err != nil {
-		fmt.Printf("Fail to load config file: %v", err)
-		os.Exit(1)
-	}
+	for i := 0; i < e.NumField(); i++ {
 
-	for _, item := range files {
-		if !item.IsDir() {
-			filename := strings.TrimSuffix(path.Base(item.Name()), path.Ext(item.Name()))
+		section := str.Snake(e.Field(i).Type().Name())
 
-			if filename != "config" {
+		for j := 0; j < e.Field(i).Type().NumField(); j++ {
 
-				v := reflect.ValueOf(&Configs).Elem()
+			key := str.Snake(e.Field(i).Type().Field(j).Name)
 
-				for i := 0; i < v.NumField(); i++ {
+			defaults := e.Field(i).Type().Field(j).Tag.Get("default")
 
-					if strings.Title(filename) == v.Field(i).Type().Name() {
+			types := e.Field(i).Type().Field(j).Type.Kind()
 
-						for j := 0; j < v.Field(i).Type().NumField(); j++ {
+			values := cfg.Section(section).Key(key)
 
-							defaults := v.Field(i).Type().Field(j).Tag.Get("default")
-							name := str.Snake(v.Field(i).Type().Field(j).Name)
-							value := cfg.Section(filename).Key(name).Value()
-
-							if value == "" && defaults != "omitempty" {
-								v.Field(i).Field(j).Set(reflect.ValueOf(defaults))
-							} else if value != "" {
-								v.Field(i).Field(j).Set(reflect.ValueOf(value))
-							}
-						}
-					}
+			switch types {
+			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+				val, _ := values.Int64()
+				if val <= 0 {
+					val, _ = strconv.ParseInt(defaults, 10, 64)
 				}
+				e.Field(i).Field(j).SetInt(val)
+			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+				val, _ := values.Uint64()
+				if val <= 0 {
+					val, _ = strconv.ParseUint(defaults, 10, 64)
+				}
+				e.Field(i).Field(j).SetUint(val)
+			case reflect.Float32, reflect.Float64:
+				val, _ := values.Float64()
+				if val <= 0 {
+					val, _ = strconv.ParseFloat(defaults, 32)
+				}
+				e.Field(i).Field(j).SetFloat(val)
+			case reflect.Bool:
+				val := values.MustBool(defaults == "true")
+				e.Field(i).Field(j).SetBool(val)
+			case reflect.String:
+				val := values.String()
+				if val == "" && defaults != "" {
+					val = defaults
+				}
+				e.Field(i).Field(j).SetString(val)
 			}
 		}
 	}

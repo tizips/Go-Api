@@ -17,13 +17,13 @@ var (
 func Init() {
 
 	//注册翻译器
-	zh := zh.New()
-	uni = ut.New(zh, zh)
+	chinese := zh.New()
+	uni = ut.New(chinese, chinese)
 
 	trans, _ = uni.GetTranslator("zh")
 
 	//获取gin的校验器
-	validate := binding.Validator.Engine().(*validator.Validate)
+	validate = binding.Validator.Engine().(*validator.Validate)
 
 	_ = validate.RegisterValidation("mobile", mobile)
 
@@ -32,7 +32,21 @@ func Init() {
 }
 
 //Translate 翻译错误信息
-func Translate(err error) map[string][]string {
+func Translate(err error) string {
+
+	result := ""
+
+	errors := err.(validator.ValidationErrors)
+
+	for _, err := range errors {
+		result = err.Translate(trans)
+		break
+	}
+
+	return result
+}
+
+func Translates(err error) map[string][]string {
 
 	var result = make(map[string][]string)
 
@@ -41,5 +55,6 @@ func Translate(err error) map[string][]string {
 	for _, err := range errors {
 		result[err.Field()] = append(result[err.Field()], err.Translate(trans))
 	}
+
 	return result
 }

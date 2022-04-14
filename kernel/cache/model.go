@@ -9,7 +9,6 @@ import (
 	"saas/app/helper/str"
 	"saas/kernel/config"
 	"saas/kernel/data"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -126,13 +125,9 @@ func Find(ctx *gin.Context, id any, model any) {
 }
 
 func key(table string, id any) string {
-	return fmt.Sprintf("%s:%s:%v", config.Configs.Cache.Prefix, table, id)
+	return fmt.Sprintf("%s:%s:%v", config.Values.Cache.Prefix, table, id)
 }
 
 func ttl() time.Duration {
-	t, err := strconv.Atoi(config.Configs.Cache.Ttl)
-	if err != nil {
-		t = 86400
-	}
-	return time.Duration(t) * time.Second
+	return time.Duration(config.Values.Cache.Ttl) * time.Second
 }

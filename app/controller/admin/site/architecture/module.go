@@ -2,7 +2,6 @@ package architecture
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/app/constant"
 	architectureForm "saas/app/form/admin/site/architecture"
 	"saas/app/model"
@@ -16,20 +15,14 @@ func DoModuleByCreate(ctx *gin.Context) {
 
 	var former architectureForm.DoModuleByCreateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
 	data.Database.Where("slug = ?", former.Slug).First(&module)
 	if module.Id > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块已存在",
-		})
+		response.ToResponseByFail(ctx, "模块已存在")
 		return
 	}
 
@@ -42,56 +35,38 @@ func DoModuleByCreate(ctx *gin.Context) {
 
 	data.Database.Create(&module)
 	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块创建失败",
-		})
+		response.ToResponseByFail(ctx, "模块创建失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoModuleByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	var former architectureForm.DoModuleByUpdateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var count int64
-	data.Database.Model(model.SysModule{}).Where("id <> ?", id).Where("slug = ?", former.Slug).Count(&count)
+	data.Database.Model(model.SysModule{}).Where("`id`<>? and `slug`=?", id, former.Slug).Count(&count)
 	if count > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块已存在",
-		})
+		response.ToResponseByFail(ctx, "模块已存在")
 		return
 	}
 
 	var module model.SysModule
 	data.Database.First(&module, id)
 	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块不存在",
-		})
+		response.ToResponseByNotFound(ctx, "模块不存在")
 		return
 	}
 
@@ -102,74 +77,49 @@ func DoModuleByUpdate(ctx *gin.Context) {
 
 	tx := data.Database.Save(&module)
 	if tx.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块修改失败",
-		})
+		response.ToResponseByFail(ctx, "模块修改失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoModuleByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	var module model.SysModule
 	data.Database.First(&module, id)
 	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块不存在",
-		})
+		response.ToResponseByNotFound(ctx, "模块不存在")
 		return
 	}
 
 	tx := data.Database.Delete(&module)
 	if tx.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块删除失败",
-		})
+		response.ToResponseByFail(ctx, "模块删除失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoModuleByEnable(ctx *gin.Context) {
 
 	var former architectureForm.DoModuleByEnableForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
 	data.Database.First(&module, former.Id)
 	if module.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "模块不存在",
-		})
+		response.ToResponseByNotFound(ctx, "模块不存在")
 		return
 	}
 
@@ -177,33 +127,23 @@ func DoModuleByEnable(ctx *gin.Context) {
 
 	tx := data.Database.Save(&module)
 	if tx.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "模块启禁失败",
-		})
+		response.ToResponseByFail(ctx, "启禁失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToModuleByList(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-	}
+	responses := make([]any, 0)
 
 	var modules []model.SysModule
 
 	data.Database.Order("`order` asc").Find(&modules)
 
 	for _, item := range modules {
-		responses.Data = append(responses.Data, architecture.ToModuleByListResponse{
+		responses = append(responses, architecture.ToModuleByListResponse{
 			Id:        item.Id,
 			Slug:      item.Slug,
 			Name:      item.Name,
@@ -213,31 +153,26 @@ func ToModuleByList(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, responses)
-
+	response.ToResponseBySuccessList(ctx, responses)
 }
 
 func ToModuleByOnline(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-	}
+	responses := make([]any, 0)
 
 	var modules []model.SysModule
 
 	data.Database.
-		Where("is_enable = ?", constant.IsEnableYes).
+		Where("`is_enable`=?", constant.IsEnableYes).
 		Order("`order` asc").
 		Find(&modules)
 
 	for _, item := range modules {
-		responses.Data = append(responses.Data, architecture.ToModuleByOnlineResponse{
+		responses = append(responses, architecture.ToModuleByOnlineResponse{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, responses)
-
+	response.ToResponseBySuccessList(ctx, responses)
 }

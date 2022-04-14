@@ -7,7 +7,7 @@ type DoPackageByCreateForm struct {
 	Devices []struct {
 		Device uint `form:"device" json:"device" binding:"required,gt=0"`
 		Number uint `form:"number" json:"number" binding:"required,gt=0"`
-	} `form:"devices" json:"devices" binding:"required,min=1,dive"`
+	} `form:"devices" json:"devices" binding:"required,min=1,unique=Device,dive"`
 }
 
 type DoPackageByUpdateForm struct {
@@ -15,7 +15,7 @@ type DoPackageByUpdateForm struct {
 	Devices []struct {
 		Device uint `form:"device" json:"device" binding:"required,gt=0"`
 		Number uint `form:"number" json:"number" binding:"required,gt=0"`
-	} `form:"devices" json:"devices" binding:"required,min=1,dive"`
+	} `form:"devices" json:"devices" binding:"required,min=1,unique=Device,dive"`
 }
 
 type ToPackageByPaginateForm struct {

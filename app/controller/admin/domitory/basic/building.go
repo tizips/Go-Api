@@ -2,7 +2,7 @@ package basic
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
+	"saas/app/constant"
 	"saas/app/form/admin/dormitory/basic"
 	"saas/app/model"
 	basicResponse "saas/app/response/admin/dormitory/basic"
@@ -15,10 +15,7 @@ func DoBuildingByCreate(ctx *gin.Context) {
 
 	var former basic.DoBuildingByCreateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -30,58 +27,39 @@ func DoBuildingByCreate(ctx *gin.Context) {
 	}
 
 	if data.Database.Create(&building); building.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoBuildingByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "楼栋ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var former basic.DoBuildingByUpdateFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+	if err = ctx.ShouldBind(&former); err != nil {
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var building model.DorBuilding
 	data.Database.First(&building, id)
 	if building.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该楼栋",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	if building.IsEnable != former.IsEnable {
 		var peoples int64 = 0
-		data.Database.Model(model.DorPeople{}).Where("building_id=?", building.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+		data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "该楼栋已有人入住，无法上下架",
-			})
+			response.ToResponseByFail(ctx, "该楼栋已有人入住，无法上下架")
 			return
 		}
 	}
@@ -91,48 +69,32 @@ func DoBuildingByUpdate(ctx *gin.Context) {
 	building.IsEnable = former.IsEnable
 
 	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "修改失败",
-		})
+		response.ToResponseByFail(ctx, "修改失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoBuildingByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "楼栋ID获取失败",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var building model.DorBuilding
 	data.Database.First(&building, id)
 	if building.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该楼栋",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("building_id=?", building.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "该楼栋已有人入住，无法删除",
-		})
+		response.ToResponseByFail(ctx, "该楼栋已有人入住，无法删除")
 		return
 	}
 
@@ -140,110 +102,74 @@ func DoBuildingByDelete(ctx *gin.Context) {
 
 	if t := tx.Delete(&building); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorRoom{}); t.Error != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorRoom{}); t.Error != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorBed{}); t.Error != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoBuildingByEnable(ctx *gin.Context) {
 
 	var former basic.DoBuildingByEnableFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var building model.DorBuilding
 	data.Database.First(&building, former.Id)
 	if building.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "未找到该楼栋",
-		})
+		response.ToResponseByNotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("building_id=?", building.Id).Where("status=?", model.DorPeopleStatusLive).Count(&peoples)
+	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "该楼栋已有人入住，无法上下架",
-		})
+		response.ToResponseByFail(ctx, "该楼栋已有人入住，无法上下架")
 		return
 	}
 
 	building.IsEnable = former.IsEnable
 
 	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: "启禁失败",
-		})
+		response.ToResponseByFail(ctx, "启禁失败")
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToBuildingByList(ctx *gin.Context) {
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
 	var buildings []model.DorBuilding
-	data.Database.Order("`order` asc").Order("`id` desc").Find(&buildings)
+	data.Database.Order("`order` asc, `id` desc").Find(&buildings)
 
 	for _, item := range buildings {
-		responses.Data = append(responses.Data, basicResponse.ToBuildingByListResponse{
+		responses = append(responses, basicResponse.ToBuildingByListResponse{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -253,34 +179,27 @@ func ToBuildingByList(ctx *gin.Context) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }
 
 func ToBuildingByOnline(ctx *gin.Context) {
 
 	var query basic.ToBuildingByOnlineFormer
 	if err := ctx.ShouldBindQuery(&query); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    []any{},
-	}
+	responses := make([]any, 0)
 
-	tx := data.Database
+	tx := data.Database.Where("`is_enable`=?", constant.IsEnableYes)
 
 	if query.IsPublic > 0 {
-		tx = tx.Where("is_public=?", query.IsPublic)
+		tx = tx.Where("`is_public`=?", query.IsPublic)
 	}
 
 	var buildings []model.DorBuilding
-	tx.Order("`order` asc").Order("`id` desc").Find(&buildings)
+	tx.Order("`order` asc, `id` desc").Find(&buildings)
 
 	for _, item := range buildings {
 		items := basicResponse.ToBuildingByOnlineResponse{
@@ -290,8 +209,8 @@ func ToBuildingByOnline(ctx *gin.Context) {
 		if query.WithPublic {
 			items.IsPublic = item.IsPublic
 		}
-		responses.Data = append(responses.Data, items)
+		responses = append(responses, items)
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessList(ctx, responses)
 }

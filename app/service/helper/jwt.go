@@ -10,5 +10,5 @@ import (
 
 func JwtToken(id any) string {
 	now := carbon.Now()
-	return crypt.Md5(fmt.Sprintf("%s%v%d%s", config.Configs.Server.Name, id, now.Timestamp(), str.Random(8)))
+	return crypt.Md5(fmt.Sprintf("%s%v%d%s", config.Values.Server.Name, id, now.Timestamp(), str.Random(8)))
 }

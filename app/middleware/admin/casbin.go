@@ -3,7 +3,7 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"saas/app/controller/admin/site/helper"
+	"saas/kernel/api"
 	"saas/kernel/auth"
 	"saas/kernel/response"
 )
@@ -12,7 +12,6 @@ func CasbinMiddleware() gin.HandlerFunc {
 
 	return func(ctx *gin.Context) {
 
-		// @todo 缓存被忽略的路由，直接从内存中查询
 		//	判断该路由是否被忽略权限判断中
 		if !omit(ctx.Request.Method, ctx.FullPath()) {
 
@@ -36,12 +35,6 @@ func CasbinMiddleware() gin.HandlerFunc {
 }
 
 func omit(method string, path string) bool {
-
-	for _, item := range helper.Omits() {
-		if method == item.Method && path == item.Path {
-			return true
-		}
-	}
-
-	return false
+	_, exist := api.OmitOfCache[api.OmitKey(method, path)]
+	return exist
 }

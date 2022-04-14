@@ -26,8 +26,7 @@ func handler() {
 
 	data.Database.
 		Preload("Master", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
-		Where("`start`<=?", now.Yesterday().ToDateString()).
-		Where("`status`=?", model.DorPeopleStatusLive).
+		Where("`start`<=? and `status`=?", now.Yesterday().ToDateString(), model.DorPeopleStatusLive).
 		Where("not exists (?)", data.Database.
 			Select("1").
 			Table(model.TableDorDay).

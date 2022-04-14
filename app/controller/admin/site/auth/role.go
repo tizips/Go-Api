@@ -2,7 +2,6 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/app/form/admin/site/auth"
 	"saas/app/model"
 	authResponse "saas/app/response/admin/site/auth"
@@ -16,10 +15,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	var former auth.DoRoleByCreateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -41,28 +37,28 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	if len(modules) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("module_id in (?)", modules).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children3) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("id in (?)", children3).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`id` in (?) and `method`<>? and `path`<>?", children3, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children2) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("parent_i2 in (?)", children2).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children1) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("parent_i1 in (?)", children1).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
@@ -79,10 +75,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 	}
 
 	if len(bind) <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "可用权限不能为空",
-		})
+		response.ToResponseByFail(ctx, "可用权限不能为空")
 		return
 	}
 
@@ -95,10 +88,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	if tx.Create(&role); role.Id <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
@@ -113,21 +103,17 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	if t := tx.CreateInBatches(binds, 100); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "添加失败",
-		})
+		response.ToResponseByFail(ctx, "添加失败")
 		return
 	}
 
 	var permissions []model.SysRoleBindPermission
 	tx.
 		Preload("Permission",
-			tx.
-				Where("method <> ?", "").
-				Where("path <> ?", ""),
+			data.Database.
+				Where("`method`<>? and `path`<>?", "", ""),
 		).
-		Where("role_id = ?", role.Id).
+		Where("`role_id` = ?", role.Id).
 		Find(&permissions)
 
 	if len(permissions) > 0 {
@@ -138,48 +124,32 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "添加失败",
-			})
+			response.ToResponseByFail(ctx, "添加失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoRoleByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "角色ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	if id == authorize.ROOT {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "开发组权限，无法修改",
-		})
+		response.ToResponseByFail(ctx, "开发组权限，无法修改")
 		return
 	}
 
 	var former auth.DoRoleByUpdateForm
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -187,10 +157,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	data.Database.First(&role, id)
 	if role.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "角色不存在",
-		})
+		response.ToResponseByNotFound(ctx, "角色不存在")
 		return
 	}
 
@@ -212,28 +179,28 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	if len(modules) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("module_id in (?)", modules).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children3) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("id in (?)", children3).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`id` in (?) and `method`<>? and `path`<>?", children3, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children2) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("parent_i2 in (?)", children2).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children1) > 0 {
 		var permissions []model.SysPermission
-		data.Database.Where("parent_i1 in (?)", children1).Where("method <> ?", "").Where("path <> ?", "").Find(&permissions)
+		data.Database.Where("`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "").Find(&permissions)
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
@@ -250,26 +217,22 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	if len(bind) <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "可用权限不能为空",
-		})
+		response.ToResponseByFail(ctx, "可用权限不能为空")
 		return
 	}
 
 	role.Name = former.Name
 	role.Summary = former.Summary
 
-	var binds []model.SysRoleBindPermission
-	data.Database.Where("role_id = ?", role.Id).Find(&binds)
+	data.Database.Where("`role_id`=?", role.Id).Find(&role.BindPermissions)
 
 	var creates []model.SysRoleBindPermission
 	var deletes []uint
 
-	if len(binds) > 0 {
+	if len(role.BindPermissions) > 0 {
 		for _, item := range bind {
 			mark := true
-			for _, value := range binds {
+			for _, value := range role.BindPermissions {
 				if item == value.PermissionId {
 					mark = false
 					break
@@ -282,7 +245,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 				})
 			}
 		}
-		for _, item := range binds {
+		for _, item := range role.BindPermissions {
 			mark := true
 			for _, value := range bind {
 				if item.PermissionId == value {
@@ -300,10 +263,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	if t := tx.Save(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "修改失败",
-		})
+		response.ToResponseByFail(ctx, "修改失败")
 		return
 	}
 
@@ -311,10 +271,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		if t := tx.CreateInBatches(creates, 100); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 
@@ -323,7 +280,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 			ids = append(ids, item.PermissionId)
 		}
 		var permissions []model.SysPermission
-		tx.Where("method <> ?", "").Where("path <> ?", "").Find(&permissions, ids)
+		tx.Where("method<>? and path<>?", "", "").Find(&permissions, ids)
 		if len(permissions) > 0 {
 			var items [][]string
 			for _, item := range permissions {
@@ -331,10 +288,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 			}
 			if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 				tx.Rollback()
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "修改失败",
-				})
+				response.ToResponseByFail(ctx, "修改失败")
 				return
 			}
 		}
@@ -342,12 +296,9 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	if len(deletes) > 0 {
 		var b model.SysRoleBindPermission
-		if t := tx.Where("role_id = ?", role.Id).Delete(&b, deletes); t.RowsAffected <= 0 {
+		if t := tx.Where("`role_id`=?", role.Id).Delete(&b, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 	}
@@ -355,10 +306,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	if len(deletes) > 0 {
 		if _, err := authorize.Casbin.DeletePermissionsForUser(authorize.NameByRole(role.Id)); err != nil {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "修改失败",
-			})
+			response.ToResponseByFail(ctx, "修改失败")
 			return
 		}
 	}
@@ -367,11 +315,10 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		var permissions []model.SysRoleBindPermission
 		tx.
 			Preload("Permission",
-				tx.
-					Where("method <> ?", "").
-					Where("path <> ?", ""),
+				data.Database.
+					Where("method <> ? and path <> ?", "", ""),
 			).
-			Where("role_id = ?", role.Id).
+			Where("`role_id` = ?", role.Id).
 			Find(&permissions)
 
 		if len(permissions) > 0 {
@@ -382,10 +329,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 			if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 				tx.Rollback()
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    60000,
-					Message: "添加失败",
-				})
+				response.ToResponseByFail(ctx, "修改失败")
 				return
 			}
 		}
@@ -393,39 +337,26 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoRoleByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "角色ID不存在",
-		})
+		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
 		return
 	}
 
 	if id == authorize.ROOT {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "开发组权限，无法修改",
-		})
+		response.ToResponseByFail(ctx, "开发组权限，无法修改")
 		return
 	}
 
 	var role model.SysRole
 	data.Database.Find(&role, id)
 	if role.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "角色不存在",
-		})
+		response.ToResponseByNotFound(ctx, "角色不存在")
 		return
 	}
 
@@ -433,79 +364,60 @@ func DoRoleByDelete(ctx *gin.Context) {
 
 	if t := data.Database.Delete(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "角色删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	bind := model.SysRoleBindPermission{RoleId: role.Id}
 
-	if t := tx.Where("role_id = ?", role.Id).Delete(&bind); t.RowsAffected <= 0 {
+	if t := tx.Where("`role_id`=?", role.Id).Delete(&bind); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "角色删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	if _, err := authorize.Casbin.DeleteRole(authorize.NameByRole(role.Id)); err != nil {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "角色删除失败",
-		})
+		response.ToResponseByFail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToRoleByPaginate(ctx *gin.Context) {
 
-	var former auth.ToRoleByPaginateForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Responses{
-			Code:    40000,
-			Message: err.Error(),
-		})
+	var query auth.ToRoleByPaginateForm
+	if err := ctx.ShouldBindQuery(&query); err != nil {
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
-	tx := data.Database.Where("id <> ?", authorize.ROOT)
+	tx := data.Database.Where("`id`<>?", authorize.ROOT)
 
 	responses := response.Paginate{
-		Code:    20000,
-		Message: "Success",
+		Page: query.GetPage(),
+		Size: query.GetSize(),
+		Data: make([]any, 0),
 	}
-
-	responses.Data.Size = former.GetSize()
-	responses.Data.Page = former.GetPage()
-	responses.Data.Data = []any{}
 
 	tc := tx
 
-	tc.Model(model.SysRole{}).Count(&responses.Data.Total)
+	tc.Model(model.SysRole{}).Count(&responses.Total)
 
-	if responses.Data.Total > 0 {
+	if responses.Total > 0 {
 
 		tx = tx.Order("`id` desc")
 
 		var roles []model.SysRole
 
-		tx.Preload("BindPermissions").Preload("BindPermissions.Permission").Offset(former.GetOffset()).Limit(former.GetLimit()).Find(&roles)
+		tx.Preload("BindPermissions.Permission").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&roles)
 
 		for _, item := range roles {
 
-			r := authResponse.ToRoleByPaginateResponse{
+			items := authResponse.ToRoleByPaginateResponse{
 				Id:        item.Id,
 				Name:      item.Name,
 				Summary:   item.Summary,
@@ -513,14 +425,14 @@ func ToRoleByPaginate(ctx *gin.Context) {
 			}
 
 			for _, value := range item.BindPermissions {
-				r.Permissions = append(r.Permissions, []uint{value.Permission.ModuleId, value.Permission.ParentI1, value.Permission.ParentI2, value.PermissionId})
+				items.Permissions = append(items.Permissions, []uint{value.Permission.ModuleId, value.Permission.ParentI1, value.Permission.ParentI2, value.PermissionId})
 			}
 
-			responses.Data.Data = append(responses.Data.Data, r)
+			responses.Data = append(responses.Data, items)
 		}
 	}
 
-	ctx.JSON(http.StatusOK, responses)
+	response.ToResponseBySuccessPaginate(ctx, responses)
 }
 
 func ToRoleByEnable(ctx *gin.Context) {
@@ -530,23 +442,19 @@ func ToRoleByEnable(ctx *gin.Context) {
 	tx := data.Database
 
 	if !authorize.Root(authorize.Id(ctx)) {
-		tx.Where("role_id <> ?", authorize.ROOT)
+		tx.Where("`role_id`<>?", authorize.ROOT)
 	}
 
 	tx.Find(&roles)
 
-	responses := response.Responses{
-		Code:    20000,
-		Message: "Success",
-	}
+	responses := make([]any, 0)
 
 	for _, item := range roles {
-		responses.Data = append(responses.Data, authResponse.ToRoleByEnableResponse{
+		responses = append(responses, authResponse.ToRoleByEnableResponse{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	ctx.JSON(http.StatusOK, responses)
-
+	response.ToResponseBySuccessList(ctx, responses)
 }

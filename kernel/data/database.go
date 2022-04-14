@@ -9,7 +9,6 @@ import (
 	"os"
 	"saas/kernel/config"
 	"saas/kernel/logger"
-	"strconv"
 	"time"
 )
 
@@ -25,7 +24,7 @@ func InitDatabase() {
 	Database, err = gorm.Open(mysql.Open(GetDns()), &gorm.Config{
 		Logger: log.LogMode(gormLogger.Info),
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   config.Configs.Database.Prefix,
+			TablePrefix:   config.Values.Database.Prefix,
 			SingularTable: true,
 		},
 		DisableForeignKeyConstraintWhenMigrating: true,
@@ -44,24 +43,21 @@ func InitDatabase() {
 	}
 
 	// SetMaxIdleCons 设置空闲连接池中连接的最大数量
-	maxIdle, _ := strconv.Atoi(config.Configs.Database.MaxIdle)
-	sqlDB.SetMaxIdleConns(maxIdle)
+	sqlDB.SetMaxIdleConns(config.Values.Database.MaxIdle)
 
 	// SetMaxOpenCons 设置打开数据库连接的最大数量。
-	maxOpen, _ := strconv.Atoi(config.Configs.Database.MaxIdle)
-	sqlDB.SetMaxOpenConns(maxOpen)
+	sqlDB.SetMaxOpenConns(config.Values.Database.MaxIdle)
 
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
-	maxLifetime, _ := strconv.Atoi(config.Configs.Database.MaxLifetime)
-	sqlDB.SetConnMaxLifetime(time.Duration(maxLifetime) * time.Second)
+	sqlDB.SetConnMaxLifetime(time.Duration(config.Values.Database.MaxLifetime) * time.Second)
 }
 
 func GetDns() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=True&loc=Local",
-		config.Configs.Database.Username,
-		config.Configs.Database.Password,
-		config.Configs.Database.Host,
-		config.Configs.Database.Port,
-		config.Configs.Database.Database,
-		config.Configs.Database.Charset)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
+		config.Values.Database.Username,
+		config.Values.Database.Password,
+		config.Values.Database.Host,
+		config.Values.Database.Port,
+		config.Values.Database.Database,
+		config.Values.Database.Charset)
 }

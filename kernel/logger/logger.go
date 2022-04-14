@@ -17,7 +17,7 @@ var Logger struct {
 
 func InitLogger() {
 
-	fmt.Println(config.Configs.System.Path)
+	fmt.Println(config.Application.Path)
 
 	folder()
 
@@ -90,7 +90,7 @@ func sql() {
 
 func path(filename string) string {
 
-	path := fmt.Sprintf("%s/logs", config.Configs.System.Public)
+	path := fmt.Sprintf("%s/logs", config.Application.Public)
 	if filename != "" {
 		path += "/" + filename + ".log"
 	}

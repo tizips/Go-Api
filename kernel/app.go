@@ -3,6 +3,7 @@ package kernel
 import (
 	"os"
 	"saas/app/crontab"
+	"saas/kernel/api"
 	"saas/kernel/auth"
 	"saas/kernel/config"
 	"saas/kernel/data"
@@ -38,6 +39,8 @@ func Application() {
 func initialize() {
 
 	config.InitConfig()
+
+	api.InitApi()
 
 	dir.InitDir()
 

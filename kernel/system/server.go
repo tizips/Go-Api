@@ -16,9 +16,9 @@ import (
 
 func Server() {
 
-	gin.SetMode(config.Configs.Server.Mode)
+	gin.SetMode(config.Values.Server.Mode)
 
-	fmt.Printf("Listen: %s\n", config.Configs.Server.Port)
+	fmt.Printf("Listen: %d\n", config.Values.Server.Port)
 
 	app := gin.New()
 
@@ -26,10 +26,10 @@ func Server() {
 
 	routes.Routes(app)
 
-	config.Configs.System.Application = app
+	config.Application.Application = app
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%s", config.Configs.Server.Port),
+		Addr:    fmt.Sprintf(":%d", config.Values.Server.Port),
 		Handler: app,
 	}
 

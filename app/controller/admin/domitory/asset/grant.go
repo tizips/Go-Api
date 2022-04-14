@@ -6,7 +6,6 @@ import (
 	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/goutil/dump"
 	"gorm.io/gorm"
-	"net/http"
 	"saas/app/form/admin/dormitory/asset"
 	"saas/app/helper/collection"
 	"saas/app/model"
@@ -19,10 +18,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 
 	var former asset.DoGrantByCreateFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
@@ -32,19 +28,13 @@ func DoGrantByCreate(ctx *gin.Context) {
 	if former.Package > 0 {
 		data.Database.Preload("Details").Find(&pack, former.Package)
 		if pack.Id <= 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "打包不存在",
-			})
+			response.ToResponseByNotFound(ctx, "打包不存在")
 			return
 		}
 	} else if former.Device > 0 {
 		data.Database.Find(&device, former.Device)
 		if device.Id <= 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "设备不存在",
-			})
+			response.ToResponseByNotFound(ctx, "设备不存在")
 			return
 		}
 	}
@@ -55,10 +45,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	if former.Type > 0 {
 		data.Database.Find(&typeBed, former.Type)
 		if typeBed.Id <= 0 {
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "房型位置不存在",
-			})
+			response.ToResponseByNotFound(ctx, "房型位置不存在")
 			return
 		}
 	} else {
@@ -90,10 +77,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if t := tx.Create(&grant); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "发放失败",
-		})
+		response.ToResponseByFail(ctx, "发放失败")
 		return
 	}
 
@@ -115,10 +99,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if t := tx.Create(&devices); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "发放失败",
-		})
+		response.ToResponseByFail(ctx, "发放失败")
 		return
 	}
 
@@ -141,24 +122,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var buildings []model.DorBuilding
 			handleBuildingIds := collection.Unique(buildingIds)
 			if len(handleBuildingIds) != len(buildingIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "楼栋选择重复",
-				})
+				response.ToResponseByFail(ctx, "楼栋选择重复")
 				return
 			}
 			data.Database.Find(&buildings, buildingIds)
 			if len(buildings) <= 0 {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "楼栋未找到",
-				})
+				response.ToResponseByNotFound(ctx, "楼栋未找到")
 				return
 			} else if len(buildings) != len(buildingIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "部分楼栋未找到",
-				})
+				response.ToResponseByNotFound(ctx, "部分楼栋未找到")
 				return
 			}
 			for _, item := range buildings {
@@ -188,24 +160,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var floors []model.DorFloor
 			handleFloorIds := collection.Unique(floorIds)
 			if len(handleFloorIds) != len(floorIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "楼层选择重复",
-				})
+				response.ToResponseByFail(ctx, "楼层选择重复")
 				return
 			}
 			data.Database.Find(&floors, floorIds)
 			if len(floors) <= 0 {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "楼层未找到",
-				})
+				response.ToResponseByNotFound(ctx, "楼层未找到")
 				return
 			} else if len(floors) != len(floorIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "部分楼层未找到",
-				})
+				response.ToResponseByNotFound(ctx, "部分楼层未找到")
 				return
 			}
 			for _, item := range floors {
@@ -237,24 +200,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var rooms []model.DorRoom
 			handleRoomIds := collection.Unique(roomIds)
 			if len(handleRoomIds) != len(roomIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "房间选择重复",
-				})
+				response.ToResponseByFail(ctx, "房间选择重复")
 				return
 			}
 			data.Database.Find(&rooms, roomIds)
 			if len(rooms) <= 0 {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "房间未找到",
-				})
+				response.ToResponseByNotFound(ctx, "房间未找到")
 				return
 			} else if len(rooms) != len(roomIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "部分房间未找到",
-				})
+				response.ToResponseByNotFound(ctx, "部分房间未找到")
 				return
 			}
 			for _, item := range rooms {
@@ -288,24 +242,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var beds []model.DorBed
 			handleBedIds := collection.Unique(bedIds)
 			if len(handleBedIds) != len(bedIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "床位选择重复",
-				})
+				response.ToResponseByFail(ctx, "床位选择重复")
 				return
 			}
 			data.Database.Find(&beds, bedIds)
 			if len(beds) <= 0 {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "床位未找到",
-				})
+				response.ToResponseByNotFound(ctx, "床位未找到")
 				return
 			} else if len(beds) != len(bedIds) {
-				ctx.JSON(http.StatusOK, response.Response{
-					Code:    40400,
-					Message: "部分床位未找到",
-				})
+				response.ToResponseByNotFound(ctx, "部分床位未找到")
 				return
 			}
 			for _, item := range beds {
@@ -322,10 +267,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if t := tx.Create(&positions); t.RowsAffected <= 0 {
 		tx.Rollback()
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    60000,
-			Message: "发放失败",
-		})
+		response.ToResponseByFail(ctx, "发放失败")
 		return
 	}
 
@@ -375,10 +317,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 
 		if len(results) <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    40400,
-				Message: "该位置尚未配备具体床位",
-			})
+			response.ToResponseByFail(ctx, "该位置尚未配备具体床位")
 			return
 		}
 
@@ -431,49 +370,34 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 		if t := tx.CreateInBatches(&details, 20); t.RowsAffected <= 0 {
 			tx.Rollback()
-			ctx.JSON(http.StatusOK, response.Response{
-				Code:    60000,
-				Message: "发放失败",
-			})
+			response.ToResponseByFail(ctx, "发放失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
+	response.ToResponseBySuccess(ctx)
 }
 
 func DoGrantByRevoke(ctx *gin.Context) {
 
 	var former asset.DoGrantByRevokeFormer
 	if err := ctx.ShouldBind(&former); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	var grant model.DorGrant
 	data.Database.First(&grant, former.Id)
 	if grant.Id <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "发放记录不存在",
-		})
+		response.ToResponseByNotFound(ctx, "发放记录不存在")
 		return
 	}
 
 	hours := grant.CreatedAt.DiffInSecondsWithAbs(carbon.Now())
 	if hours > 86400 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "本次发放已无法撤销",
-		})
+		response.ToResponseByFail(ctx, "本次发放已无法撤销")
 		return
 	}
 
@@ -488,73 +412,51 @@ func DoGrantByRevoke(ctx *gin.Context) {
 	//}
 
 	if t := tx.Delete(&grant); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "回撤失败",
-		})
+		response.ToResponseByFail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantPosition{}); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "回撤失败",
-		})
+		response.ToResponseByFail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDevice{}); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "回撤失败",
-		})
+		response.ToResponseByFail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDetail{}); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "回撤失败",
-		})
+		response.ToResponseByFail(ctx, "回撤失败")
 		return
 	}
 
 	tx.Commit()
 
-	ctx.JSON(http.StatusOK, response.Response{
-		Code:    20000,
-		Message: "Success",
-	})
-
+	response.ToResponseBySuccess(ctx)
 }
 
 func ToGrantByPaginate(ctx *gin.Context) {
 
 	var query asset.ToGrantByPaginateFormer
 	if err := ctx.ShouldBindQuery(&query); err != nil {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.ToResponseByFailRequest(ctx, err)
 		return
 	}
 
 	responses := response.Paginate{
-		Code:    20000,
-		Message: "Success",
+		Page: query.GetPage(),
+		Size: query.GetSize(),
+		Data: make([]any, 0),
 	}
-
-	responses.Data.Page = query.GetPage()
-	responses.Data.Size = query.GetSize()
-	responses.Data.Data = []any{}
 
 	tx := data.Database
 
 	tc := tx
 
-	tc.Table(model.TableDorGrant).Count(&responses.Data.Total)
+	tc.Table(model.TableDorGrant).Count(&responses.Total)
 
-	if responses.Data.Total > 0 {
+	if responses.Total > 0 {
 		var grants []model.DorGrant
 		tx.
 			Preload("Package", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
@@ -581,10 +483,9 @@ func ToGrantByPaginate(ctx *gin.Context) {
 				})
 			}
 
-			responses.Data.Data = append(responses.Data.Data, items)
+			responses.Data = append(responses.Data, items)
 		}
 	}
 
-	ctx.JSON(http.StatusOK, responses)
-
+	response.ToResponseBySuccessPaginate(ctx, responses)
 }

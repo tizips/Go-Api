@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
+	"saas/app/constant"
 	"saas/app/model"
 	"saas/kernel/cache"
 	"strconv"
@@ -9,13 +10,13 @@ import (
 
 func Admin(ctx *gin.Context) model.SysAdmin {
 	if Check(ctx) {
-		if admin, exist := ctx.Get("ADMIN"); exist {
+		if admin, exist := ctx.Get(constant.ContextAdmin); exist {
 			return admin.(model.SysAdmin)
 		} else {
 			var SysAdmin model.SysAdmin
 			cache.Find(ctx, Id(ctx), &SysAdmin)
 			if SysAdmin.Id > 0 {
-				ctx.Set("ADMIN", SysAdmin)
+				ctx.Set(constant.ContextAdmin, SysAdmin)
 				return SysAdmin
 			}
 		}
@@ -33,7 +34,7 @@ func Check(ctx *gin.Context) bool {
 
 func Id(ctx *gin.Context) uint {
 	var id uint = 0
-	if ID, exist := ctx.Get("ID"); exist && ID != "" {
+	if ID, exist := ctx.Get(constant.ContextID); exist && ID != "" {
 		if t, err := strconv.Atoi(ID.(string)); err == nil {
 			id = uint(t)
 		}
