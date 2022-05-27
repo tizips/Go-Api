@@ -1,6 +1,6 @@
 package basic
 
-type ToBuildingByListResponse struct {
+type ToBuildingByList struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	Order     uint   `json:"order"`
@@ -9,7 +9,7 @@ type ToBuildingByListResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToBuildingByOnlineResponse struct {
+type ToBuildingByOnline struct {
 	Id       uint   `json:"id"`
 	Name     string `json:"name"`
 	IsPublic uint8  `json:"is_public,omitempty"`

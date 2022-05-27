@@ -1,6 +1,6 @@
 package auth
 
-type ToRoleByPaginateResponse struct {
+type ToRoleByPaginate struct {
 	Id          uint     `json:"id"`
 	Name        string   `json:"name"`
 	Summary     string   `json:"summary"`
@@ -8,7 +8,7 @@ type ToRoleByPaginateResponse struct {
 	CreatedAt   string   `json:"created_at"`
 }
 
-type ToRoleByEnableResponse struct {
+type ToRoleByEnable struct {
 	Id   uint   `json:"id"`
 	Name string `json:"name"`
 }

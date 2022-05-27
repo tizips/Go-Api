@@ -2,9 +2,8 @@ package admin
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/kernel/api"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/response"
 )
 
@@ -16,15 +15,12 @@ func CasbinMiddleware() gin.HandlerFunc {
 		if !omit(ctx.Request.Method, ctx.FullPath()) {
 
 			//	判断该用户是否为开发组权限
-			if ok, _ := auth.Casbin.HasRoleForUser(auth.NameByAdmin(auth.Id(ctx)), auth.NameByRole(auth.ROOT)); !ok {
+			if ok, _ := authorize.Casbin.HasRoleForUser(authorize.NameByAdmin(authorize.Id(ctx)), authorize.NameByRole(authorize.ROOT)); !ok {
 
 				//	判断该用户是否有该接口的访问权限
-				if ok, _ = auth.Casbin.Enforce(auth.NameByAdmin(auth.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
+				if ok, _ = authorize.Casbin.Enforce(authorize.NameByAdmin(authorize.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
 					ctx.Abort()
-					ctx.JSON(http.StatusForbidden, response.Response{
-						Code:    40300,
-						Message: "Forbidden",
-					})
+					response.Forbidden(ctx)
 					return
 				}
 			}

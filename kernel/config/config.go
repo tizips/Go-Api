@@ -19,12 +19,15 @@ var Values struct {
 	Redis    configs.Redis
 	Jwt      configs.Jwt
 	Cache    configs.Cache
+	File     configs.File
+	Qiniu    configs.Qiniu
+	Amqp     configs.Amqp
 }
 
 type system struct {
 	Application *gin.Engine
 	Path        string
-	Public      string
+	Runtime     string
 }
 
 func InitConfig() {
@@ -32,8 +35,8 @@ func InitConfig() {
 	pwd, _ := os.Getwd()
 
 	Application = system{
-		Path:   pwd,
-		Public: pwd + "/public",
+		Path:    pwd,
+		Runtime: pwd + "/runtime",
 	}
 
 	handler()

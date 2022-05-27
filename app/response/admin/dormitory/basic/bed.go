@@ -1,6 +1,6 @@
 package basic
 
-type ToBedByPaginateResponse struct {
+type ToBedByPaginate struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	Building  string `json:"building"`
@@ -12,7 +12,7 @@ type ToBedByPaginateResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToBedByOnlineResponse struct {
+type ToBedByOnline struct {
 	Id       uint   `json:"id"`
 	Name     string `json:"name"`
 	IsPublic uint8  `json:"is_public,omitempty"`

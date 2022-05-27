@@ -7,7 +7,7 @@ import (
 	"os"
 	"saas/app/constant"
 	"saas/app/model"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/data"
 )
 
@@ -28,7 +28,7 @@ func Root() {
 		fmt.Println("Username 不能为空")
 		return
 	} else {
-		data.Database.Where("username", username).First(&SysAdmin)
+		data.Database.Where("username=?", username).Find(&SysAdmin)
 	}
 
 	if SysAdmin.Id <= 0 {
@@ -63,14 +63,14 @@ func Root() {
 		}
 	}
 
-	var SysAdminBindRole = model.SysAdminBindRole{AdminId: SysAdmin.Id, RoleId: auth.ROOT}
-	data.Database.Where("admin_id", SysAdmin.Id).Where("role_id", auth.ROOT).FirstOrCreate(&SysAdminBindRole)
+	var SysAdminBindRole = model.SysAdminBindRole{AdminId: SysAdmin.Id, RoleId: authorize.ROOT}
+	data.Database.Where("admin_id=? and role_id=?", SysAdmin.Id, authorize.ROOT).FirstOrCreate(&SysAdminBindRole)
 	if SysAdminBindRole.Id <= 0 {
 		fmt.Println("Create admin bind role fail")
 		return
 	}
 
-	exist, err := auth.Casbin.HasRoleForUser(auth.NameByAdmin(SysAdmin.Id), auth.NameByRole(auth.ROOT))
+	exist, err := authorize.Casbin.HasRoleForUser(authorize.NameByAdmin(SysAdmin.Id), authorize.NameByRole(authorize.ROOT))
 	if exist {
 		fmt.Printf("Root of %s has existed", SysAdmin.Nickname)
 		return
@@ -79,7 +79,7 @@ func Root() {
 		return
 	}
 
-	if ok, err := auth.Casbin.AddRoleForUser(auth.NameByAdmin(SysAdmin.Id), auth.NameByRole(auth.ROOT)); !ok {
+	if ok, err := authorize.Casbin.AddRoleForUser(authorize.NameByAdmin(SysAdmin.Id), authorize.NameByRole(authorize.ROOT)); !ok {
 		fmt.Printf("Root create fail: %v", err.Error())
 		return
 	}

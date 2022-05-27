@@ -1,6 +1,6 @@
 package asset
 
-type ToCategoryByListResponse struct {
+type ToCategoryByList struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	Order     uint   `json:"order"`
@@ -8,7 +8,7 @@ type ToCategoryByListResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToCategoryByOnlineResponse struct {
+type ToCategoryByOnline struct {
 	Id   uint   `json:"id"`
 	Name string `json:"name"`
 }

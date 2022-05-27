@@ -2,10 +2,10 @@ package auth
 
 import (
 	"github.com/gin-gonic/gin"
-	"saas/app/form/admin/site/auth"
 	"saas/app/model"
+	"saas/app/request/admin/site/auth"
 	authResponse "saas/app/response/admin/site/auth"
-	authorize "saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/data"
 	"saas/kernel/response"
 	"strconv"
@@ -13,9 +13,9 @@ import (
 
 func DoRoleByCreate(ctx *gin.Context) {
 
-	var former auth.DoRoleByCreateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.DoRoleByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -23,7 +23,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	var modules, children1, children2, children3 []uint
 
-	for _, item := range former.Permissions {
+	for _, item := range request.Permissions {
 		if len(item) >= 4 {
 			children3 = append(children3, item[3])
 		} else if len(item) >= 3 {
@@ -75,20 +75,20 @@ func DoRoleByCreate(ctx *gin.Context) {
 	}
 
 	if len(bind) <= 0 {
-		response.ToResponseByFail(ctx, "可用权限不能为空")
+		response.Fail(ctx, "可用权限不能为空")
 		return
 	}
 
 	tx := data.Database.Begin()
 
 	role := model.SysRole{
-		Name:    former.Name,
-		Summary: former.Summary,
+		Name:    request.Name,
+		Summary: request.Summary,
 	}
 
 	if tx.Create(&role); role.Id <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
@@ -103,7 +103,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 	if t := tx.CreateInBatches(binds, 100); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
@@ -124,40 +124,40 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "添加失败")
+			response.Fail(ctx, "添加失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoRoleByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
+		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
 	if id == authorize.ROOT {
-		response.ToResponseByFail(ctx, "开发组权限，无法修改")
+		response.Fail(ctx, "开发组权限，无法修改")
 		return
 	}
 
-	var former auth.DoRoleByUpdateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.DoRoleByUpdate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var role model.SysRole
 
-	data.Database.First(&role, id)
+	data.Database.Find(&role, id)
 	if role.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "角色不存在")
+		response.NotFound(ctx, "角色不存在")
 		return
 	}
 
@@ -165,7 +165,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	var modules, children1, children2, children3 []uint
 
-	for _, item := range former.Permissions {
+	for _, item := range request.Permissions {
 		if len(item) >= 4 {
 			children3 = append(children3, item[3])
 		} else if len(item) >= 3 {
@@ -217,12 +217,12 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	if len(bind) <= 0 {
-		response.ToResponseByFail(ctx, "可用权限不能为空")
+		response.Fail(ctx, "可用权限不能为空")
 		return
 	}
 
-	role.Name = former.Name
-	role.Summary = former.Summary
+	role.Name = request.Name
+	role.Summary = request.Summary
 
 	data.Database.Where("`role_id`=?", role.Id).Find(&role.BindPermissions)
 
@@ -263,7 +263,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	if t := tx.Save(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "修改失败")
+		response.Fail(ctx, "修改失败")
 		return
 	}
 
@@ -271,7 +271,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		if t := tx.CreateInBatches(creates, 100); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 
@@ -288,7 +288,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 			}
 			if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 				tx.Rollback()
-				response.ToResponseByFail(ctx, "修改失败")
+				response.Fail(ctx, "修改失败")
 				return
 			}
 		}
@@ -298,7 +298,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		var b model.SysRoleBindPermission
 		if t := tx.Where("`role_id`=?", role.Id).Delete(&b, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
@@ -306,7 +306,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	if len(deletes) > 0 {
 		if _, err := authorize.Casbin.DeletePermissionsForUser(authorize.NameByRole(role.Id)); err != nil {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
@@ -329,7 +329,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 			if _, err := authorize.Casbin.AddPermissionsForUser(authorize.NameByRole(role.Id), items...); err != nil {
 				tx.Rollback()
-				response.ToResponseByFail(ctx, "修改失败")
+				response.Fail(ctx, "修改失败")
 				return
 			}
 		}
@@ -337,26 +337,26 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoRoleByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
+		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
 	if id == authorize.ROOT {
-		response.ToResponseByFail(ctx, "开发组权限，无法修改")
+		response.Fail(ctx, "开发组权限，无法修改")
 		return
 	}
 
 	var role model.SysRole
 	data.Database.Find(&role, id)
 	if role.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "角色不存在")
+		response.NotFound(ctx, "角色不存在")
 		return
 	}
 
@@ -364,7 +364,7 @@ func DoRoleByDelete(ctx *gin.Context) {
 
 	if t := data.Database.Delete(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
@@ -372,34 +372,34 @@ func DoRoleByDelete(ctx *gin.Context) {
 
 	if t := tx.Where("`role_id`=?", role.Id).Delete(&bind); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if _, err := authorize.Casbin.DeleteRole(authorize.NameByRole(role.Id)); err != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToRoleByPaginate(ctx *gin.Context) {
 
-	var query auth.ToRoleByPaginateForm
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.ToRoleByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	tx := data.Database.Where("`id`<>?", authorize.ROOT)
 
 	responses := response.Paginate{
-		Page: query.GetPage(),
-		Size: query.GetSize(),
+		Page: request.GetPage(),
+		Size: request.GetSize(),
 		Data: make([]any, 0),
 	}
 
@@ -413,11 +413,11 @@ func ToRoleByPaginate(ctx *gin.Context) {
 
 		var roles []model.SysRole
 
-		tx.Preload("BindPermissions.Permission").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&roles)
+		tx.Preload("BindPermissions.Permission").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&roles)
 
 		for _, item := range roles {
 
-			items := authResponse.ToRoleByPaginateResponse{
+			items := authResponse.ToRoleByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				Summary:   item.Summary,
@@ -432,7 +432,7 @@ func ToRoleByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }
 
 func ToRoleByEnable(ctx *gin.Context) {
@@ -450,11 +450,11 @@ func ToRoleByEnable(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	for _, item := range roles {
-		responses = append(responses, authResponse.ToRoleByEnableResponse{
+		responses = append(responses, authResponse.ToRoleByEnable{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

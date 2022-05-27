@@ -71,7 +71,7 @@ func refresh(ctx *gin.Context, claims jwt.StandardClaims) {
 
 	} else {
 
-		diff := now.DiffInSecondsWithAbs(carbon.Parse(cache["created_at"]))
+		diff := now.DiffAbsInSeconds(carbon.Parse(cache["created_at"]))
 
 		if diff <= config.Values.Jwt.Leeway {
 			ctx.Header("Authorization", cache["token"])

@@ -2,8 +2,8 @@ package helper
 
 import (
 	"github.com/gin-gonic/gin"
-	helperForm "saas/app/form/admin/site/helper"
 	"saas/app/model"
+	helperForm "saas/app/request/admin/site/helper"
 	"saas/app/response/admin/site/helper"
 	"saas/kernel/api"
 	"saas/kernel/config"
@@ -14,16 +14,16 @@ import (
 
 func ToApiByList(ctx *gin.Context) {
 
-	var former helperForm.ToApiByListForm
-	if err := ctx.ShouldBindQuery(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request helperForm.ToApiByList
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
-	data.Database.First(&module, former.Module)
+	data.Database.Find(&module, request.Module)
 	if module.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "模块不存在")
+		response.NotFound(ctx, "模块不存在")
 		return
 	}
 
@@ -60,7 +60,7 @@ func ToApiByList(ctx *gin.Context) {
 			}
 
 			if mark {
-				responses = append(responses, helper.ToApiByListResponse{
+				responses = append(responses, helper.ToApiByList{
 					Method: item.Method,
 					Path:   item.Path,
 				})
@@ -68,5 +68,5 @@ func ToApiByList(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

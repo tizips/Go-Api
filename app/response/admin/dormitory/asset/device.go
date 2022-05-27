@@ -1,6 +1,6 @@
 package asset
 
-type ToDeviceByPaginateResponse struct {
+type ToDeviceByPaginate struct {
 	Id            uint   `json:"id"`
 	Category      string `json:"category"`
 	CategoryId    uint   `json:"category_id"`
@@ -16,7 +16,7 @@ type ToDeviceByPaginateResponse struct {
 	CreatedAt     string `json:"created_at"`
 }
 
-type ToDeviceByOnlineResponse struct {
+type ToDeviceByOnline struct {
 	Id   uint   `json:"id"`
 	Name string `json:"name"`
 }

@@ -2,8 +2,8 @@ package asset
 
 import (
 	"github.com/gin-gonic/gin"
-	"saas/app/form/admin/dormitory/asset"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -12,22 +12,22 @@ import (
 
 func DoPackageByCreate(ctx *gin.Context) {
 
-	var former asset.DoPackageByCreateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoPackageByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
-	var deviceIds = make([]uint, len(former.Devices))
+	var deviceIds = make([]uint, len(request.Devices))
 
-	for idx, item := range former.Devices {
+	for idx, item := range request.Devices {
 		deviceIds[idx] = item.Device
 	}
 
 	var devices []model.DorDevice
 	data.Database.Where("`id` in (?)", deviceIds).Find(&devices)
 
-	for _, item := range former.Devices {
+	for _, item := range request.Devices {
 		mark := true
 		for _, value := range devices {
 			if item.Device == value.Id {
@@ -35,30 +35,30 @@ func DoPackageByCreate(ctx *gin.Context) {
 			}
 		}
 		if mark {
-			response.ToResponseByNotFound(ctx, "部分设备未找到")
+			response.NotFound(ctx, "部分设备未找到")
 			return
 		}
 	}
 
-	if len(devices) != len(former.Devices) {
-		response.ToResponseByFail(ctx, "部分设备选择重复")
+	if len(devices) != len(request.Devices) {
+		response.Fail(ctx, "部分设备选择重复")
 		return
 	}
 
 	tx := data.Database.Begin()
 
 	pack := model.DorPackage{
-		Name: former.Name,
+		Name: request.Name,
 	}
 
 	if t := tx.Create(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
 	var bindings []model.DorPackageDetail
-	for _, item := range former.Devices {
+	for _, item := range request.Devices {
 		bindings = append(bindings, model.DorPackageDetail{
 			PackageId: pack.Id,
 			DeviceId:  item.Device,
@@ -68,46 +68,46 @@ func DoPackageByCreate(ctx *gin.Context) {
 
 	if t := tx.Create(&bindings); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoPackageByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var former asset.DoPackageByUpdateForm
-	if err = ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoPackageByUpdate
+	if err = ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var pack model.DorPackage
-	data.Database.Preload("Details").First(&pack, id)
+	data.Database.Preload("Details").Find(&pack, id)
 	if pack.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该打包数据")
+		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
 
-	var deviceIds = make([]uint, len(former.Devices))
+	var deviceIds = make([]uint, len(request.Devices))
 
-	for idx, item := range former.Devices {
+	for idx, item := range request.Devices {
 		deviceIds[idx] = item.Device
 	}
 
 	var devices []model.DorDevice
 	data.Database.Where("id in (?)", deviceIds).Find(&devices)
 
-	for _, item := range former.Devices {
+	for _, item := range request.Devices {
 		mark := true
 		for _, value := range devices {
 			if item.Device == value.Id {
@@ -115,18 +115,18 @@ func DoPackageByUpdate(ctx *gin.Context) {
 			}
 		}
 		if mark {
-			response.ToResponseByNotFound(ctx, "部分设备未找到")
+			response.NotFound(ctx, "部分设备未找到")
 			return
 		}
 	}
 
-	if len(devices) != len(former.Devices) {
-		response.ToResponseByFail(ctx, "部分设备选择重复")
+	if len(devices) != len(request.Devices) {
+		response.Fail(ctx, "部分设备选择重复")
 		return
 	}
 
 	var creates, updates []model.DorPackageDetail
-	for _, item := range former.Devices {
+	for _, item := range request.Devices {
 		mark := true
 		for _, value := range pack.Details {
 			if value.DeviceId == item.Device {
@@ -149,7 +149,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	var deletes []uint
 	for _, item := range pack.Details {
 		mark := true
-		for _, value := range former.Devices {
+		for _, value := range request.Devices {
 			if item.DeviceId == value.Device {
 				mark = false
 			}
@@ -161,12 +161,12 @@ func DoPackageByUpdate(ctx *gin.Context) {
 
 	tx := data.Database.Begin()
 
-	if former.Name != pack.Name {
-		pack.Name = former.Name
+	if request.Name != pack.Name {
+		pack.Name = request.Name
 
 		if t := tx.Save(&pack); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
@@ -174,7 +174,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	if len(creates) > 0 {
 		if t := tx.Save(&creates); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
@@ -182,7 +182,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		for _, item := range updates {
 			if t := tx.Save(&item); t.RowsAffected <= 0 {
 				tx.Rollback()
-				response.ToResponseByFail(ctx, "修改失败")
+				response.Fail(ctx, "修改失败")
 				return
 			}
 		}
@@ -190,28 +190,28 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	if len(deletes) > 0 {
 		if t := tx.Delete(&model.DorPackageDetail{}, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoPackageByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var pack model.DorPackage
-	data.Database.First(&pack, id)
+	data.Database.Find(&pack, id)
 	if pack.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该打包数据")
+		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
 
@@ -219,40 +219,40 @@ func DoPackageByDelete(ctx *gin.Context) {
 
 	if t := tx.Delete(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("`package_id`=?", pack.Id).Delete(&model.DorPackageDetail{}); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToPackageByPaginate(ctx *gin.Context) {
 
-	var query asset.ToPackageByPaginateForm
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.ToPackageByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	responses := response.Paginate{
 		Total: 0,
-		Page:  query.GetPage(),
-		Size:  query.GetSize(),
+		Page:  request.GetPage(),
+		Size:  request.GetSize(),
 		Data:  make([]any, 0),
 	}
 
 	tx := data.Database
 
-	if query.Keyword != "" {
-		tx = tx.Where("`name` like ?", "%"+query.Keyword+"%")
+	if request.Keyword != "" {
+		tx = tx.Where("`name` like ?", "%"+request.Keyword+"%")
 	}
 
 	tc := tx
@@ -262,16 +262,16 @@ func ToPackageByPaginate(ctx *gin.Context) {
 
 		var packages []model.DorPackage
 
-		tx.Preload("Details.Device").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&packages)
+		tx.Preload("Details.Device").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&packages)
 
 		for _, item := range packages {
-			items := assetResponse.ToPackageByPaginateResponse{
+			items := assetResponse.ToPackageByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
 			}
 			for _, value := range item.Details {
-				items.Devices = append(items.Devices, assetResponse.ToPackageByPaginateOfDevicesResponse{
+				items.Devices = append(items.Devices, assetResponse.ToPackageByPaginateOfDevices{
 					Id:       value.DeviceId,
 					Category: value.Device.CategoryId,
 					Name:     value.Device.Name,
@@ -282,7 +282,7 @@ func ToPackageByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }
 
 func ToPackageByOnline(ctx *gin.Context) {
@@ -293,11 +293,11 @@ func ToPackageByOnline(ctx *gin.Context) {
 
 	data.Database.Order("`id` desc").Find(&packages)
 	for _, item := range packages {
-		responses = append(responses, assetResponse.ToPackageByOnlineResponse{
+		responses = append(responses, assetResponse.ToPackageByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

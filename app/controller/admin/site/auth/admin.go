@@ -5,10 +5,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
-	"saas/app/form/admin/site/auth"
 	"saas/app/model"
+	"saas/app/request/admin/site/auth"
 	authResponse "saas/app/response/admin/site/auth"
-	authorize "saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/data"
 	"saas/kernel/response"
 	"strconv"
@@ -16,9 +16,9 @@ import (
 
 func DoAdminByCreate(ctx *gin.Context) {
 
-	var former auth.DoAdminByCreateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.DoAdminByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -30,46 +30,46 @@ func DoAdminByCreate(ctx *gin.Context) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
 	}
 
-	tc.Where("`id` IN (?)", former.Roles).Count(&count)
+	tc.Where("`id` IN (?)", request.Roles).Count(&count)
 
-	if len(former.Roles) != int(count) {
-		response.ToResponseByNotFound(ctx, "部分角色不存在")
+	if len(request.Roles) != int(count) {
+		response.NotFound(ctx, "部分角色不存在")
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("`mobile`=?", former.Mobile).Count(&count)
+	data.Database.Model(model.SysAdmin{}).Where("`mobile`=?", request.Mobile).Count(&count)
 	if count > 0 {
-		response.ToResponseByFail(ctx, "该手机号已被注册")
+		response.Fail(ctx, "该手机号已被注册")
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("username = ?", former.Username).Count(&count)
+	data.Database.Model(model.SysAdmin{}).Where("username = ?", request.Username).Count(&count)
 	if count > 0 {
-		response.ToResponseByFail(ctx, "该用户名已被注册")
+		response.Fail(ctx, "该用户名已被注册")
 		return
 	}
 
-	password, _ := bcrypt.GenerateFromPassword([]byte(former.Password), bcrypt.DefaultCost)
+	password, _ := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 
 	tx := data.Database.Begin()
 
 	admin := model.SysAdmin{
-		Username: former.Username,
-		Nickname: former.Nickname,
-		Mobile:   former.Mobile,
+		Username: request.Username,
+		Nickname: request.Nickname,
+		Mobile:   request.Mobile,
 		Password: string(password),
-		IsEnable: former.IsEnable,
+		IsEnable: request.IsEnable,
 	}
 
 	if tx.Create(&admin); admin.Id <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
 	var binds []model.SysAdminBindRole
 
-	for _, item := range former.Roles {
+	for _, item := range request.Roles {
 		binds = append(binds, model.SysAdminBindRole{
 			AdminId: admin.Id,
 			RoleId:  item,
@@ -78,7 +78,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 	if t := tx.CreateInBatches(binds, 100); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
@@ -90,27 +90,27 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 		if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "添加失败")
+			response.Fail(ctx, "添加失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoAdminByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
+		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
-	var former auth.DoAdminByUpdateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.DoAdminByUpdate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -119,34 +119,34 @@ func DoAdminByUpdate(ctx *gin.Context) {
 	if !authorize.Root(authorize.Id(ctx)) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
 	}
-	tc.Where("`id` in (?)", former.Roles).Count(&count)
+	tc.Where("`id` in (?)", request.Roles).Count(&count)
 
-	if len(former.Roles) != int(count) {
-		response.ToResponseByNotFound(ctx, "部分角色不存在")
+	if len(request.Roles) != int(count) {
+		response.NotFound(ctx, "部分角色不存在")
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, former.Mobile).Count(&count)
+	data.Database.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, request.Mobile).Count(&count)
 	if count > 0 {
-		response.ToResponseByFail(ctx, "该手机号已被注册")
+		response.Fail(ctx, "该手机号已被注册")
 		return
 	}
 
 	var admin model.SysAdmin
 
-	data.Database.Preload("BindRoles").First(&admin, id)
+	data.Database.Preload("BindRoles").Find(&admin, id)
 	if admin.Id <= 0 {
-		response.ToResponseByFail(ctx, "该账号不存在")
+		response.Fail(ctx, "该账号不存在")
 		return
 	}
 
-	admin.Nickname = former.Nickname
-	admin.Mobile = former.Mobile
-	admin.IsEnable = former.IsEnable
+	admin.Nickname = request.Nickname
+	admin.Mobile = request.Mobile
+	admin.IsEnable = request.IsEnable
 
-	if former.Password != "" {
+	if request.Password != "" {
 
-		password, _ := bcrypt.GenerateFromPassword([]byte(former.Password), bcrypt.DefaultCost)
+		password, _ := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 
 		admin.Password = string(password)
 	}
@@ -155,7 +155,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 	var deletes []uint
 	var del []uint
 
-	for _, item := range former.Roles {
+	for _, item := range request.Roles {
 		mark := true
 		for _, value := range admin.BindRoles {
 			if item == value.RoleId {
@@ -172,7 +172,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 	}
 	for _, item := range admin.BindRoles {
 		mark := true
-		for _, value := range former.Roles {
+		for _, value := range request.Roles {
 			if item.RoleId == value {
 				mark = false
 				break
@@ -188,14 +188,14 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 	if t := tx.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "修改失败")
+		response.Fail(ctx, "修改失败")
 		return
 	}
 
-	if former.IsEnable == constant.IsEnableYes { //	用户禁用，删除缓存角色
+	if request.IsEnable == constant.IsEnableYes { //	用户禁用，删除缓存角色
 		if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 	}
@@ -204,15 +204,15 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		var SysAdminBindRole model.SysAdminBindRole
 		if t := tx.Where("`admin_id`=?", admin.Id).Delete(&SysAdminBindRole, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 
-		if len(del) > 0 && former.IsEnable == constant.IsEnableYes { //	用户启用，结算需要删除的角色
+		if len(del) > 0 && request.IsEnable == constant.IsEnableYes { //	用户启用，结算需要删除的角色
 			for _, item := range del {
 				if _, err := authorize.Casbin.DeleteRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(item)); err != nil {
 					tx.Rollback()
-					response.ToResponseByFail(ctx, "修改失败")
+					response.Fail(ctx, "修改失败")
 					return
 				}
 			}
@@ -223,11 +223,11 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 		if t := tx.CreateInBatches(creates, 100); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "修改失败")
+			response.Fail(ctx, "修改失败")
 			return
 		}
 
-		if len(creates) > 0 && former.IsEnable == constant.IsEnableYes { //	用户启用，处理需要新加的角色
+		if len(creates) > 0 && request.IsEnable == constant.IsEnableYes { //	用户启用，处理需要新加的角色
 			var items = make([]string, len(creates))
 			for idx, item := range creates {
 				items[idx] = authorize.NameByRole(item.RoleId)
@@ -235,7 +235,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 			if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 				tx.Rollback()
-				response.ToResponseByFail(ctx, "修改失败")
+				response.Fail(ctx, "修改失败")
 				return
 			}
 		}
@@ -243,14 +243,14 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToAdminByPaginate(ctx *gin.Context) {
 
-	var query auth.ToAdminByPaginateForm
-	if err := ctx.ShouldBind(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.ToAdminByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -267,8 +267,8 @@ func ToAdminByPaginate(ctx *gin.Context) {
 
 	responses := response.Paginate{
 		Total: 0,
-		Page:  query.GetPage(),
-		Size:  query.GetSize(),
+		Page:  request.GetPage(),
+		Size:  request.GetSize(),
 		Data:  make([]any, 0),
 	}
 
@@ -283,12 +283,12 @@ func ToAdminByPaginate(ctx *gin.Context) {
 			//Preload("BindRoles").
 			Preload("BindRoles.Role").
 			Order("`id` desc").
-			Offset(query.GetOffset()).
-			Limit(query.GetLimit()).
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
 			Find(&admins)
 
 		for _, item := range admins {
-			result := authResponse.ToAdminByPaginateResponse{
+			result := authResponse.ToAdminByPaginate{
 				Id:        item.Id,
 				Username:  item.Username,
 				Nickname:  item.Nickname,
@@ -306,26 +306,26 @@ func ToAdminByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }
 
 func DoAdminByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
 	if id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID不存在")
+		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
 	if authorize.Id(ctx) == uint(id) {
-		response.ToResponseByFail(ctx, "无法删除自身账号")
+		response.Fail(ctx, "无法删除自身账号")
 		return
 	}
 
 	var admin model.SysAdmin
-	data.Database.First(&admin, id)
+	data.Database.Find(&admin, id)
 	if admin.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "账号不存在")
+		response.NotFound(ctx, "账号不存在")
 		return
 	}
 
@@ -333,7 +333,7 @@ func DoAdminByDelete(ctx *gin.Context) {
 
 	if t := data.Database.Delete(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "账号删除失败")
+		response.Fail(ctx, "账号删除失败")
 		return
 	}
 
@@ -341,53 +341,53 @@ func DoAdminByDelete(ctx *gin.Context) {
 
 	if t := tx.Where("`admin_id`=?", admin.Id).Delete(&bind); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "账号删除失败")
+		response.Fail(ctx, "账号删除失败")
 		return
 	}
 
 	if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "账号删除失败")
+		response.Fail(ctx, "账号删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoAdminByEnable(ctx *gin.Context) {
 
-	var former auth.DoAdminByEnableForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request auth.DoAdminByEnable
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var admin model.SysAdmin
-	data.Database.First(&admin, former.Id)
+	data.Database.Find(&admin, request.Id)
 	if admin.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "账号不存在")
+		response.NotFound(ctx, "账号不存在")
 		return
 	}
 
-	admin.IsEnable = former.IsEnable
+	admin.IsEnable = request.IsEnable
 
 	tx := data.Database.Begin()
 
 	if t := data.Database.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "启禁失败")
+		response.Fail(ctx, "启禁失败")
 		return
 	}
 
-	if former.IsEnable == constant.IsEnableNo {
+	if request.IsEnable == constant.IsEnableNo {
 		if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "启禁失败")
+			response.Fail(ctx, "启禁失败")
 			return
 		}
-	} else if former.IsEnable == constant.IsEnableYes {
+	} else if request.IsEnable == constant.IsEnableYes {
 		tx.Where("`admin_id`=?", admin.Id).Find(&admin.BindRoles)
 		if len(admin.BindRoles) > 0 {
 			var items []string
@@ -396,7 +396,7 @@ func DoAdminByEnable(ctx *gin.Context) {
 			}
 			if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 				tx.Rollback()
-				response.ToResponseByFail(ctx, "启禁失败")
+				response.Fail(ctx, "启禁失败")
 				return
 			}
 		}
@@ -404,5 +404,5 @@ func DoAdminByEnable(ctx *gin.Context) {
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }

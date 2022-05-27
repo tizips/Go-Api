@@ -13,8 +13,8 @@ func Admins(route *gin.Engine) {
 	{
 		login := admin.Group("/login")
 		{
-			login.POST("/account", basicMiddleware.LimiterMiddleware(), basic.DoLoginByAccount)
-			login.POST("/qrcode", basic.DoLoginByQrcode)
+			login.POST("/account", basicMiddleware.LimitMiddleware(nil), basic.DoLoginByAccount)
+			login.POST("/qrcode", basicMiddleware.LimitMiddleware(nil), basic.DoLoginByQrcode)
 		}
 
 		auth := admin.Group("")
@@ -22,6 +22,7 @@ func Admins(route *gin.Engine) {
 		{
 			accountGroup := auth.Group("/account")
 			{
+				accountGroup.PUT("", basic.DoAccountByUpdate)
 				accountGroup.GET("/information", basic.ToAccountByInformation)
 				accountGroup.GET("/module", basic.ToAccountByModule)
 				accountGroup.GET("/permission", basic.ToAccountByPermission)
@@ -30,6 +31,11 @@ func Admins(route *gin.Engine) {
 
 			RouteSite(auth)
 			RouteDormitory(auth)
+
+			uploadGroup := auth.Group("upload")
+			{
+				uploadGroup.POST("", basic.DoUploadBySimple)
+			}
 		}
 	}
 }

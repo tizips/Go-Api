@@ -2,9 +2,10 @@ package kernel
 
 import (
 	"os"
+	"saas/app/amqp"
 	"saas/app/crontab"
 	"saas/kernel/api"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/config"
 	"saas/kernel/data"
 	"saas/kernel/dir"
@@ -50,8 +51,10 @@ func initialize() {
 
 	data.InitRedis()
 
-	auth.InitCasbin()
+	authorize.InitCasbin()
 
-	crontab.InitCrontab()
+	go crontab.InitCrontab()
+
+	go amqp.Init()
 
 }

@@ -3,8 +3,8 @@ package asset
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/constant"
-	"saas/app/form/admin/dormitory/asset"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/asset"
 	asset2 "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -13,136 +13,136 @@ import (
 
 func DoDeviceByCreate(ctx *gin.Context) {
 
-	var former asset.DoDeviceByCreateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoDeviceByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorAssetCategory{}).Where("id=?", former.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
+	data.Database.Model(model.DorAssetCategory{}).Where("id=?", request.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
-		response.ToResponseByNotFound(ctx, "类型不存在")
+		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	assets := model.DorDevice{
-		CategoryId:    former.Category,
-		No:            former.No,
-		Name:          former.Name,
-		Specification: former.Specification,
-		Price:         former.Price,
-		Unit:          former.Unit,
-		Indemnity:     former.Indemnity,
-		StockTotal:    former.Stock,
+		CategoryId:    request.Category,
+		No:            request.No,
+		Name:          request.Name,
+		Specification: request.Specification,
+		Price:         request.Price,
+		Unit:          request.Unit,
+		Indemnity:     request.Indemnity,
+		StockTotal:    request.Stock,
 		StockUsed:     0,
-		Remark:        former.Remark,
+		Remark:        request.Remark,
 	}
 
 	if t := data.Database.Create(&assets); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoDeviceByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var former asset.DoDeviceByUpdateForm
-	if err = ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoDeviceByUpdate
+	if err = ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorAssetCategory{}).Where("id=?", former.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
+	data.Database.Model(model.DorAssetCategory{}).Where("id=?", request.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
-		response.ToResponseByNotFound(ctx, "类型不存在")
+		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	var assets model.DorDevice
 	data.Database.Find(&assets, id)
 	if assets.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "资源不存在")
+		response.NotFound(ctx, "资源不存在")
 		return
 	}
 
-	if assets.StockUsed > former.Stock {
-		response.ToResponseByFail(ctx, "资源库存不能小于已用量")
+	if assets.StockUsed > request.Stock {
+		response.Fail(ctx, "资源库存不能小于已用量")
 		return
 	}
 
-	assets.CategoryId = former.Category
-	assets.No = former.No
-	assets.Name = former.Name
-	assets.Specification = former.Specification
-	assets.Price = former.Price
-	assets.Unit = former.Unit
-	assets.Indemnity = former.Indemnity
-	assets.StockTotal = former.Stock
-	assets.Remark = former.Remark
+	assets.CategoryId = request.Category
+	assets.No = request.No
+	assets.Name = request.Name
+	assets.Specification = request.Specification
+	assets.Price = request.Price
+	assets.Unit = request.Unit
+	assets.Indemnity = request.Indemnity
+	assets.StockTotal = request.Stock
+	assets.Remark = request.Remark
 
 	if t := data.Database.Save(&assets); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "修改失败")
+		response.Fail(ctx, "修改失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoDeviceByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var assets model.DorDevice
 	data.Database.Find(&assets, id)
 	if assets.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "资源不存在")
+		response.NotFound(ctx, "资源不存在")
 		return
 	}
 
 	if t := data.Database.Delete(&assets); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToDeviceByPaginate(ctx *gin.Context) {
 
-	var query asset.ToDeviceByPaginateForm
-	if err := ctx.ShouldBind(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.ToDeviceByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	responses := response.Paginate{
-		Page: query.GetPage(),
-		Size: query.GetSize(),
+		Page: request.GetPage(),
+		Size: request.GetSize(),
 		Data: make([]any, 0),
 	}
 
 	tx := data.Database
 
-	if query.Keyword != "" && query.Type == "no" {
-		tx = tx.Where("`no`=?", query.Keyword)
-	} else if query.Keyword != "" {
-		tx = tx.Where("`name` like ?", "%"+query.Keyword+"%")
+	if request.Keyword != "" && request.Type == "no" {
+		tx = tx.Where("`no`=?", request.Keyword)
+	} else if request.Keyword != "" {
+		tx = tx.Where("`name` like ?", "%"+request.Keyword+"%")
 	}
 
 	tc := tx
@@ -152,10 +152,10 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 	if responses.Total > 0 {
 
 		var assets []model.DorDevice
-		tx.Preload("Category").Order("`id` desc").Offset(query.GetOffset()).Limit(query.GetLimit()).Find(&assets)
+		tx.Preload("Category").Order("`id` desc").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&assets)
 
 		for _, item := range assets {
-			responses.Data = append(responses.Data, asset2.ToDeviceByPaginateResponse{
+			responses.Data = append(responses.Data, asset2.ToDeviceByPaginate{
 				Id:            item.Id,
 				Category:      item.Category.Name,
 				CategoryId:    item.Category.Id,
@@ -173,28 +173,28 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }
 
 func ToDeviceByOnline(ctx *gin.Context) {
 
-	var query asset.ToDeviceByOnlineForm
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.ToDeviceByOnline
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	responses := make([]any, 0)
 
 	var devices []model.DorDevice
-	data.Database.Where("category_id=?", query.Category).Find(&devices)
+	data.Database.Where("category_id=?", request.Category).Find(&devices)
 
 	for _, item := range devices {
-		responses = append(responses, asset2.ToDeviceByOnlineResponse{
+		responses = append(responses, asset2.ToDeviceByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

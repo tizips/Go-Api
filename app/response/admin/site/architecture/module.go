@@ -1,6 +1,6 @@
 package architecture
 
-type ToModuleByListResponse struct {
+type ToModuleByList struct {
 	Id        uint   `json:"id"`
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`
@@ -9,7 +9,7 @@ type ToModuleByListResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToModuleByOnlineResponse struct {
+type ToModuleByOnline struct {
 	Id   uint   `json:"id"`
 	Name string `json:"name"`
 }

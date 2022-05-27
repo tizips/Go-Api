@@ -20,7 +20,7 @@ func BlackJwt(ctx context.Context, channel string, claims jwt.StandardClaims) bo
 
 	now := carbon.Now()
 
-	expires := time.Duration(now.Timestamp()-claims.ExpiresAt+12*60*60) * time.Second
+	expires := time.Duration(claims.ExpiresAt+12*60*60-now.Timestamp()) * time.Second
 
 	_, err := data.Redis.Set(ctx, Blacklist(channel, "login", claims.Audience), now.ToDateTimeString(), expires).Result()
 
@@ -32,5 +32,5 @@ func BlackJwt(ctx context.Context, channel string, claims jwt.StandardClaims) bo
 }
 
 func Blacklist(channel string, method string, str string) string {
-	return config.Values.Cache.Prefix + ":" + channel + ":blacklist:" + method + ":" + str
+	return config.Values.Redis.Prefix + ":" + channel + ":blacklist:" + method + ":" + str
 }

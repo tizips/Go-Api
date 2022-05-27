@@ -7,12 +7,12 @@ import (
 	"github.com/golang-module/carbon/v2"
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
-	"saas/app/form/admin/account"
 	"saas/app/model"
-	accountResponse "saas/app/response/admin/account"
+	basicForm "saas/app/request/admin/basic"
+	accountResponse "saas/app/response/admin/basic"
 	"saas/app/service/basic"
 	helperService "saas/app/service/helper"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/config"
 	"saas/kernel/data"
 	basicResponse "saas/kernel/response"
@@ -20,24 +20,24 @@ import (
 
 func DoLoginByAccount(ctx *gin.Context) {
 
-	var params account.DoLoginForm
+	var request basicForm.DoLoginByAccess
 
-	if err := ctx.ShouldBind(&params); err != nil {
-		basicResponse.ToResponseByFailRequest(ctx, err)
+	if err := ctx.ShouldBind(&request); err != nil {
+		basicResponse.FailByRequest(ctx, err)
 		return
 	}
 
 	var SysAdmin model.SysAdmin
 
-	data.Database.Where("username", params.Username).Where("is_enable = ?", constant.IsEnableYes).First(&SysAdmin)
+	data.Database.Where("username", request.Username).Where("is_enable = ?", constant.IsEnableYes).Find(&SysAdmin)
 
 	if SysAdmin.Id <= 0 {
-		basicResponse.ToResponseByFail(ctx, "用户名或密码错误")
+		basicResponse.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(SysAdmin.Password), []byte(params.Password)); err != nil {
-		basicResponse.ToResponseByFail(ctx, "用户名或密码错误")
+	if err := bcrypt.CompareHashAndPassword([]byte(SysAdmin.Password), []byte(request.Password)); err != nil {
+		basicResponse.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
@@ -56,14 +56,15 @@ func DoLoginByAccount(ctx *gin.Context) {
 	signed, err := token.SignedString([]byte(config.Values.Jwt.Secret))
 
 	if err != nil {
-		basicResponse.ToResponseByFail(ctx, "用户名或密码错误")
+		basicResponse.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
-	basicResponse.ToResponseBySuccessData(ctx, accountResponse.LoginResponse{
+	basicResponse.SuccessByData(ctx, accountResponse.DoLoginByAccess{
 		Token:    signed,
 		ExpireAt: now.AddHours(config.Values.Jwt.Lifetime).Timestamp(),
 	})
+
 }
 
 func DoLoginByQrcode(ctx *gin.Context) {
@@ -72,14 +73,14 @@ func DoLoginByQrcode(ctx *gin.Context) {
 
 func DoLogout(ctx *gin.Context) {
 
-	claims := auth.Jwt(ctx)
+	claims := authorize.Jwt(ctx)
 
 	ok := basic.BlackJwt(ctx, "admin", *claims)
 
 	if !ok {
-		basicResponse.ToResponseByFail(ctx, "退出失败，请稍后重试！")
+		basicResponse.Fail(ctx, "退出失败，请稍后重试！")
 		return
 	}
 
-	basicResponse.ToResponseBySuccess(ctx)
+	basicResponse.Success(ctx)
 }

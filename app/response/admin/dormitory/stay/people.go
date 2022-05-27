@@ -1,6 +1,6 @@
 package stay
 
-type ToPeopleByPaginateResponse struct {
+type ToPeopleByPaginate struct {
 	Id            uint     `json:"id"`
 	Category      string   `json:"category"`
 	Building      string   `json:"building"`
@@ -21,12 +21,12 @@ type ToPeopleByPaginateResponse struct {
 	CreatedAt     string   `json:"created_at"`
 }
 
-type ToPeopleByPaginateOfManagerResponse struct {
+type ToPeopleByPaginateOfManager struct {
 	Name   string `json:"name,omitempty"`
 	Mobile string `json:"mobile,omitempty"`
 }
 
-type ToPeopleByPaginateOfCertificationResponse struct {
+type ToPeopleByPaginateOfCertification struct {
 	No      string `json:"no,omitempty"`
 	Address string `json:"address,omitempty"`
 }

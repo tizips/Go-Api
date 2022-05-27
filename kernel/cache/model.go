@@ -7,10 +7,8 @@ import (
 	"gorm.io/gorm"
 	"reflect"
 	"saas/app/helper/str"
-	"saas/kernel/config"
 	"saas/kernel/data"
 	"strings"
-	"time"
 )
 
 type Model struct {
@@ -29,7 +27,39 @@ func (m *Model) AfterDelete(tx *gorm.DB) (err error) {
 //	数据修改之后，自动删除缓存模型
 func (m *Model) clear(tx *gorm.DB) {
 
-	var id any = nil
+	key := id(tx)
+
+	if key != "" {
+		data.Redis.Del(tx.Statement.Context, Key(tx.Statement.Schema.Table, key))
+	}
+}
+
+//	优先从缓存中获取模型
+func FindById(ctx *gin.Context, model any, id any) {
+
+	t := reflect.TypeOf(model).Elem()
+
+	if t.Kind() == reflect.Struct {
+
+		table := str.Snake(t.Name())
+		result, err := data.Redis.Get(ctx, Key(table, id)).Result()
+
+		if err == nil && result != "" {
+			_ = json.Unmarshal([]byte(result), &model)
+			return
+		}
+
+		tx := data.Database.Find(&model, id)
+		if tx.RowsAffected > 0 {
+			hash, _ := json.Marshal(model)
+			data.Redis.Set(ctx, Key(table, id), string(hash), ttl())
+		}
+	}
+}
+
+func id(tx *gorm.DB) string {
+
+	var ids = make([]string, 0)
 
 	for _, field := range tx.Statement.Schema.Fields {
 		if field.Name == tx.Statement.Schema.PrioritizedPrimaryField.Name {
@@ -38,96 +68,17 @@ func (m *Model) clear(tx *gorm.DB) {
 				for i := 0; i < tx.Statement.ReflectValue.Len(); i++ {
 					// 从字段中获取数值
 					if fieldValue, isZero := field.ValueOf(tx.Statement.Context, tx.Statement.ReflectValue.Index(i)); !isZero {
-						id = fieldValue
+						ids = append(ids, fmt.Sprintf("%v", fieldValue))
 					}
 				}
 			case reflect.Struct:
 				// 从字段中获取数值
 				if fieldValue, isZero := field.ValueOf(tx.Statement.Context, tx.Statement.ReflectValue); !isZero {
-					id = fieldValue
-				}
-			}
-			break
-		}
-	}
-
-	if id != nil {
-		data.Redis.Del(tx.Statement.Context, key(tx.Statement.Schema.Table, id))
-	}
-}
-
-//	优先从缓存中获取模型
-func Find(ctx *gin.Context, id any, model any) {
-
-	t := reflect.TypeOf(model).Elem()
-
-	if t.Kind() == reflect.Struct {
-
-		table := str.Snake(t.Name())
-		result, err := data.Redis.Get(ctx, key(table, id)).Result()
-
-		if err == nil && result != "" {
-			_ = json.Unmarshal([]byte(result), &model)
-		}
-
-		var ID any = nil
-		var keys = ""
-
-		for i := 0; i < t.NumField(); i++ {
-			tag := t.Field(i).Tag.Get("gorm")
-			if tag != "" {
-				tags := strings.Split(tag, ";")
-				mark := false
-				k := ""
-				for _, item := range tags {
-					if strings.HasPrefix(item, "column:") {
-						k = strings.TrimPrefix(item, "column:")
-					}
-					if item == "primaryKey" || item == "primary_key" {
-						mark = true
-						break
-					}
-				}
-				if mark {
-					if k == "" {
-						k = str.Snake(t.Field(i).Name)
-					}
-					keys = k
-					switch reflect.ValueOf(model).Elem().Field(i).Kind() {
-					case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-						n := reflect.ValueOf(model).Elem().Field(i).Int()
-						if n > 0 {
-							ID = n
-						}
-					case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-						n := reflect.ValueOf(model).Elem().Field(i).Uint()
-						if n > 0 {
-							ID = n
-						}
-					case reflect.String:
-						s := reflect.ValueOf(model).Elem().Field(i).String()
-						if s != "" {
-							ID = s
-						}
-					}
+					ids = append(ids, fmt.Sprintf("%v", fieldValue))
 				}
 			}
 		}
-
-		if ID == nil {
-			tx := data.Database.Where(keys, id).First(&model)
-			if tx.RowsAffected > 0 {
-				hash, _ := json.Marshal(model)
-				data.Redis.Set(ctx, key(table, id), string(hash), ttl())
-			}
-		}
 	}
-}
 
-func key(table string, id any) string {
-	return fmt.Sprintf("%s:%s:%v", config.Values.Cache.Prefix, table, id)
-}
-
-func ttl() time.Duration {
-	return time.Duration(config.Values.Cache.Ttl) * time.Second
+	return strings.Join(ids, "-")
 }

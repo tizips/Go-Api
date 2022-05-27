@@ -1,6 +1,6 @@
 package basic
 
-type ToFloorByListResponse struct {
+type ToFloorByList struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	Building  string `json:"building"`
@@ -10,7 +10,7 @@ type ToFloorByListResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToFloorByOnlineResponse struct {
+type ToFloorByOnline struct {
 	Id       uint   `json:"id"`
 	Name     string `json:"name"`
 	IsPublic uint8  `json:"is_public"`

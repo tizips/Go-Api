@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"saas/app/constant"
-	"saas/app/form/admin/dormitory/basic"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/basic"
 	basicResponse "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -14,104 +14,104 @@ import (
 
 func DoTypeByCreate(ctx *gin.Context) {
 
-	var former basic.DoTypeByCreateFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoTypeByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	tx := data.Database.Begin()
 
 	typ := model.DorType{
-		Name:     former.Name,
-		Order:    former.Order,
-		IsEnable: former.IsEnable,
+		Name:     request.Name,
+		Order:    request.Order,
+		IsEnable: request.IsEnable,
 	}
 
 	if t := tx.Create(&typ); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
-	if len(former.Beds) > 0 {
-		beds := make([]model.DorTypeBed, len(former.Beds))
-		for index, item := range former.Beds {
+	if len(request.Beds) > 0 {
+		beds := make([]model.DorTypeBed, len(request.Beds))
+		for index, item := range request.Beds {
 			beds[index] = model.DorTypeBed{TypeId: typ.Id, Name: item.Name, IsPublic: item.IsPublic}
 		}
 		if t := tx.Create(&beds); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "添加失败")
+			response.Fail(ctx, "添加失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoTypeByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var former basic.DoTypeByUpdateFormer
-	if err = ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoTypeByUpdate
+	if err = ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var typing model.DorType
-	data.Database.First(&typing, id)
+	data.Database.Find(&typing, id)
 	if typing.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该房型")
+		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
-	if typing.IsEnable != former.IsEnable {
+	if typing.IsEnable != request.IsEnable {
 		var peoples int64 = 0
 		data.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
-			response.ToResponseByFail(ctx, "该房型已有人入住，无法上下架")
+			response.Fail(ctx, "该房型已有人入住，无法上下架")
 			return
 		}
 	}
 
-	typing.Name = former.Name
-	typing.Order = former.Order
-	typing.IsEnable = former.IsEnable
+	typing.Name = request.Name
+	typing.Order = request.Order
+	typing.IsEnable = request.IsEnable
 
 	if t := data.Database.Save(&typing); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "修改失败")
+		response.Fail(ctx, "修改失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoTypeByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var typing model.DorType
-	data.Database.First(&typing, id)
+	data.Database.Find(&typing, id)
 	if typing.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该房型")
+		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
 	data.Database.Model(model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		response.ToResponseByFail(ctx, "该房型已有人入住，无法删除")
+		response.Fail(ctx, "该房型已有人入住，无法删除")
 		return
 	}
 
@@ -119,51 +119,51 @@ func DoTypeByDelete(ctx *gin.Context) {
 
 	if t := tx.Delete(&typing); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("type_id=?", typing.Id).Delete(&model.DorTypeBed{}); t.Error != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoTypeByEnable(ctx *gin.Context) {
 
-	var former basic.DoTypeByEnableFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoTypeByEnable
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var typ model.DorType
-	data.Database.First(&typ, former.Id)
+	data.Database.Find(&typ, request.Id)
 	if typ.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该房型")
+		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
 	data.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typ.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		response.ToResponseByFail(ctx, "该房型已有人入住，无法上下架")
+		response.Fail(ctx, "该房型已有人入住，无法上下架")
 		return
 	}
 
-	typ.IsEnable = former.IsEnable
+	typ.IsEnable = request.IsEnable
 
 	if t := data.Database.Save(&typ); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "启禁失败")
+		response.Fail(ctx, "启禁失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToTypeByList(ctx *gin.Context) {
@@ -174,7 +174,7 @@ func ToTypeByList(ctx *gin.Context) {
 	data.Database.Preload("Beds").Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
-		items := basicResponse.ToTypeByListResponse{
+		items := basicResponse.ToTypeByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -182,7 +182,7 @@ func ToTypeByList(ctx *gin.Context) {
 			CreatedAt: item.CreatedAt.ToDateTimeString(),
 		}
 		for _, value := range item.Beds {
-			items.Beds = append(items.Beds, basicResponse.ToTypeByListOfBedResponse{
+			items.Beds = append(items.Beds, basicResponse.ToTypeByListOfBed{
 				Name:     value.Name,
 				IsPublic: value.IsPublic,
 			})
@@ -190,14 +190,14 @@ func ToTypeByList(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }
 
 func ToTypeByOnline(ctx *gin.Context) {
 
-	var query basic.ToTypeByOnlineFormer
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.ToTypeByOnline
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -207,10 +207,10 @@ func ToTypeByOnline(ctx *gin.Context) {
 
 	tx := data.Database.Where("`is_enable`=?", constant.IsEnableYes)
 
-	if query.WithBed || query.MustBed {
+	if request.WithBed || request.MustBed {
 		tx = tx.Preload("Beds")
 	}
-	if query.MustBed {
+	if request.MustBed {
 		tx = tx.Where("exists (?)", data.Database.
 			Select("1").
 			Table(model.TableDorTypeBed).
@@ -222,13 +222,13 @@ func ToTypeByOnline(ctx *gin.Context) {
 	tx.Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
-		items := basicResponse.ToTypeByOnlineResponse{
+		items := basicResponse.ToTypeByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		}
-		if query.WithBed || query.MustBed {
+		if request.WithBed || request.MustBed {
 			for _, value := range item.Beds {
-				items.Beds = append(items.Beds, basicResponse.ToTypeByOnlineOfBedResponse{
+				items.Beds = append(items.Beds, basicResponse.ToTypeByOnlineOfBed{
 					Id:   value.Id,
 					Name: value.Name,
 				})
@@ -237,5 +237,5 @@ func ToTypeByOnline(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

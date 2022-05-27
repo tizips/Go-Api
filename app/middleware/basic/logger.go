@@ -3,7 +3,7 @@ package basic
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/logger"
 	"time"
 )
@@ -15,7 +15,7 @@ func LoggerMiddleware() gin.HandlerFunc {
 
 		ctx.Next()
 
-		id := auth.Id(ctx)
+		id := authorize.Id(ctx)
 
 		fields := logrus.Fields{
 			"status":  ctx.Writer.Status(),

@@ -1,6 +1,6 @@
 package basic
 
-type ToRoomByPaginateResponse struct {
+type ToRoomByPaginate struct {
 	Id        uint   `json:"id"`
 	Name      string `json:"name"`
 	Building  string `json:"building"`
@@ -14,7 +14,7 @@ type ToRoomByPaginateResponse struct {
 	CreatedAt string `json:"created_at"`
 }
 
-type ToRoomByOnlineResponse struct {
+type ToRoomByOnline struct {
 	Id       uint   `json:"id"`
 	Name     string `json:"name"`
 	IsPublic uint8  `json:"is_public,omitempty"`

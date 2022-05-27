@@ -7,7 +7,7 @@ import (
 
 func InitDir() {
 
-	_ = Mkdir(config.Application.Public)
+	_ = Mkdir(config.Application.Runtime)
 
 }
 

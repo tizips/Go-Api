@@ -6,49 +6,56 @@ import (
 	"saas/kernel/validator"
 )
 
-func ToResponseByUnauthorized(ctx *gin.Context) {
+func Unauthorized(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    40100,
 		Message: "Unauthorized",
 	})
 }
 
-func ToResponseByNotFound(ctx *gin.Context, message string) {
+func Forbidden(ctx *gin.Context) {
+	ctx.JSON(http.StatusForbidden, Response{
+		Code:    40400,
+		Message: "Forbidden",
+	})
+}
+
+func NotFound(ctx *gin.Context, message string) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    40400,
 		Message: message,
 	})
 }
 
-func ToResponseByFailRequest(ctx *gin.Context, err error) {
+func FailByRequest(ctx *gin.Context, err error) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    40000,
 		Message: validator.Translate(err),
 	})
 }
 
-func ToResponseByFailRequestMessage(ctx *gin.Context, message string) {
+func FailByRequestWithMessage(ctx *gin.Context, message string) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    40000,
 		Message: message,
 	})
 }
 
-func ToResponseByFailLogin(ctx *gin.Context) {
+func FailByLogin(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    40100,
 		Message: "登陆失败",
 	})
 }
 
-func ToResponseBySuccess(ctx *gin.Context) {
+func Success(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    20000,
 		Message: "Success",
 	})
 }
 
-func ToResponseBySuccessData(ctx *gin.Context, data any) {
+func SuccessByData(ctx *gin.Context, data any) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    20000,
 		Message: "Success",
@@ -56,7 +63,7 @@ func ToResponseBySuccessData(ctx *gin.Context, data any) {
 	})
 }
 
-func ToResponseBySuccessList(ctx *gin.Context, list []any) {
+func SuccessByList(ctx *gin.Context, list []any) {
 	ctx.JSON(http.StatusOK, Responses{
 		Code:    20000,
 		Message: "Success",
@@ -64,7 +71,7 @@ func ToResponseBySuccessList(ctx *gin.Context, list []any) {
 	})
 }
 
-func ToResponseBySuccessPaginate(ctx *gin.Context, data Paginate) {
+func SuccessByPaginate(ctx *gin.Context, data Paginate) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    20000,
 		Message: "Success",
@@ -72,7 +79,7 @@ func ToResponseBySuccessPaginate(ctx *gin.Context, data Paginate) {
 	})
 }
 
-func ToResponseByFail(ctx *gin.Context, message string) {
+func Fail(ctx *gin.Context, message string) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    60000,
 		Message: message,

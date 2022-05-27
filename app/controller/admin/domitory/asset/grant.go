@@ -6,9 +6,10 @@ import (
 	"github.com/golang-module/carbon/v2"
 	"github.com/gookit/goutil/dump"
 	"gorm.io/gorm"
-	"saas/app/form/admin/dormitory/asset"
+	"net/http"
 	"saas/app/helper/collection"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -16,25 +17,25 @@ import (
 
 func DoGrantByCreate(ctx *gin.Context) {
 
-	var former asset.DoGrantByCreateFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoGrantByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var pack model.DorPackage
 	var device model.DorDevice
 
-	if former.Package > 0 {
-		data.Database.Preload("Details").Find(&pack, former.Package)
+	if request.Package > 0 {
+		data.Database.Preload("Details").Find(&pack, request.Package)
 		if pack.Id <= 0 {
-			response.ToResponseByNotFound(ctx, "打包不存在")
+			response.NotFound(ctx, "打包不存在")
 			return
 		}
-	} else if former.Device > 0 {
-		data.Database.Find(&device, former.Device)
+	} else if request.Device > 0 {
+		data.Database.Find(&device, request.Device)
 		if device.Id <= 0 {
-			response.ToResponseByNotFound(ctx, "设备不存在")
+			response.NotFound(ctx, "设备不存在")
 			return
 		}
 	}
@@ -42,14 +43,14 @@ func DoGrantByCreate(ctx *gin.Context) {
 	var typeBed model.DorTypeBed
 	var buildingIds, floorIds, roomIds, bedIds []uint
 
-	if former.Type > 0 {
-		data.Database.Find(&typeBed, former.Type)
+	if request.Type > 0 {
+		data.Database.Find(&typeBed, request.Type)
 		if typeBed.Id <= 0 {
-			response.ToResponseByNotFound(ctx, "房型位置不存在")
+			response.NotFound(ctx, "房型位置不存在")
 			return
 		}
 	} else {
-		for _, item := range former.Positions {
+		for _, item := range request.Positions {
 			if item.Object == "bed" {
 				bedIds = append(bedIds, item.Id)
 			} else if item.Object == "room" {
@@ -62,7 +63,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 	}
 
-	dump.P(former)
+	dump.P(request)
 	dump.P(buildingIds)
 
 	tx := data.Database.Begin()
@@ -70,14 +71,14 @@ func DoGrantByCreate(ctx *gin.Context) {
 	grant := model.DorGrant{
 		Object:    "device",
 		PackageId: pack.Id,
-		Remark:    former.Remark,
+		Remark:    request.Remark,
 	}
 	if pack.Id > 0 {
 		grant.Object = model.DorGrantObjectPackage
 	}
 	if t := tx.Create(&grant); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "发放失败")
+		response.Fail(ctx, "发放失败")
 		return
 	}
 
@@ -94,12 +95,12 @@ func DoGrantByCreate(ctx *gin.Context) {
 		devices = append(devices, model.DorGrantDevice{
 			GrantId:  grant.Id,
 			DeviceId: device.Id,
-			Number:   former.Number,
+			Number:   request.Number,
 		})
 	}
 	if t := tx.Create(&devices); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "发放失败")
+		response.Fail(ctx, "发放失败")
 		return
 	}
 
@@ -110,7 +111,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	var isNoPublicFloorIds []uint
 	var isNoPublicRoomIds []uint
 
-	if former.Type > 0 {
+	if request.Type > 0 {
 		positions = append(positions, model.DorGrantPosition{
 			GrantId:   grant.Id,
 			Object:    model.DorGrantPositionType,
@@ -122,15 +123,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var buildings []model.DorBuilding
 			handleBuildingIds := collection.Unique(buildingIds)
 			if len(handleBuildingIds) != len(buildingIds) {
-				response.ToResponseByFail(ctx, "楼栋选择重复")
+				response.Fail(ctx, "楼栋选择重复")
 				return
 			}
 			data.Database.Find(&buildings, buildingIds)
 			if len(buildings) <= 0 {
-				response.ToResponseByNotFound(ctx, "楼栋未找到")
+				response.NotFound(ctx, "楼栋未找到")
 				return
 			} else if len(buildings) != len(buildingIds) {
-				response.ToResponseByNotFound(ctx, "部分楼栋未找到")
+				response.NotFound(ctx, "部分楼栋未找到")
 				return
 			}
 			for _, item := range buildings {
@@ -160,15 +161,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var floors []model.DorFloor
 			handleFloorIds := collection.Unique(floorIds)
 			if len(handleFloorIds) != len(floorIds) {
-				response.ToResponseByFail(ctx, "楼层选择重复")
+				response.Fail(ctx, "楼层选择重复")
 				return
 			}
 			data.Database.Find(&floors, floorIds)
 			if len(floors) <= 0 {
-				response.ToResponseByNotFound(ctx, "楼层未找到")
+				response.NotFound(ctx, "楼层未找到")
 				return
 			} else if len(floors) != len(floorIds) {
-				response.ToResponseByNotFound(ctx, "部分楼层未找到")
+				response.NotFound(ctx, "部分楼层未找到")
 				return
 			}
 			for _, item := range floors {
@@ -200,15 +201,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var rooms []model.DorRoom
 			handleRoomIds := collection.Unique(roomIds)
 			if len(handleRoomIds) != len(roomIds) {
-				response.ToResponseByFail(ctx, "房间选择重复")
+				response.Fail(ctx, "房间选择重复")
 				return
 			}
 			data.Database.Find(&rooms, roomIds)
 			if len(rooms) <= 0 {
-				response.ToResponseByNotFound(ctx, "房间未找到")
+				response.NotFound(ctx, "房间未找到")
 				return
 			} else if len(rooms) != len(roomIds) {
-				response.ToResponseByNotFound(ctx, "部分房间未找到")
+				response.NotFound(ctx, "部分房间未找到")
 				return
 			}
 			for _, item := range rooms {
@@ -242,15 +243,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 			var beds []model.DorBed
 			handleBedIds := collection.Unique(bedIds)
 			if len(handleBedIds) != len(bedIds) {
-				response.ToResponseByFail(ctx, "床位选择重复")
+				response.Fail(ctx, "床位选择重复")
 				return
 			}
 			data.Database.Find(&beds, bedIds)
 			if len(beds) <= 0 {
-				response.ToResponseByNotFound(ctx, "床位未找到")
+				response.NotFound(ctx, "床位未找到")
 				return
 			} else if len(beds) != len(bedIds) {
-				response.ToResponseByNotFound(ctx, "部分床位未找到")
+				response.NotFound(ctx, "部分床位未找到")
 				return
 			}
 			for _, item := range beds {
@@ -267,11 +268,11 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if t := tx.Create(&positions); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "发放失败")
+		response.Fail(ctx, "发放失败")
 		return
 	}
 
-	if former.Type > 0 || len(isNoPublicBuildingIds) > 0 || len(isNoPublicFloorIds) > 0 || len(isNoPublicRoomIds) > 0 || len(bedIds) > 0 {
+	if request.Type > 0 || len(isNoPublicBuildingIds) > 0 || len(isNoPublicFloorIds) > 0 || len(isNoPublicRoomIds) > 0 || len(bedIds) > 0 {
 
 		var results []map[string]any
 
@@ -280,7 +281,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 			Table(model.TableDorBed).
 			Joins(fmt.Sprintf("left join %s on %s.id=%s.bed_id and %s.status", model.TableDorPeople, model.TableDorBed, model.TableDorPeople, model.TableDorPeople))
 
-		if former.Type > 0 {
+		if request.Type > 0 {
 			tb = tb.Where(fmt.Sprintf("%s.bed_id=?", model.TableDorBed), typeBed.Id)
 		} else {
 			condition := data.Database
@@ -317,7 +318,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 
 		if len(results) <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "该位置尚未配备具体床位")
+			response.Fail(ctx, "该位置尚未配备具体床位")
 			return
 		}
 
@@ -370,83 +371,83 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 		if t := tx.CreateInBatches(&details, 20); t.RowsAffected <= 0 {
 			tx.Rollback()
-			response.ToResponseByFail(ctx, "发放失败")
+			response.Fail(ctx, "发放失败")
 			return
 		}
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoGrantByRevoke(ctx *gin.Context) {
 
-	var former asset.DoGrantByRevokeFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.DoGrantByRevoke
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var grant model.DorGrant
-	data.Database.First(&grant, former.Id)
+	data.Database.Find(&grant, request.Id)
 	if grant.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "发放记录不存在")
+		response.NotFound(ctx, "发放记录不存在")
 		return
 	}
 
-	hours := grant.CreatedAt.DiffInSecondsWithAbs(carbon.Now())
+	hours := grant.CreatedAt.DiffAbsInSeconds(carbon.Now())
 	if hours > 86400 {
-		response.ToResponseByFail(ctx, "本次发放已无法撤销")
+		response.Fail(ctx, "本次发放已无法撤销")
 		return
 	}
 
 	tx := data.Database
 
-	//if t := tx.Save(&grant); t.RowsAffected <= 0 {
-	//	ctx.JSON(http.StatusOK, response.Response{
-	//		Code:    40400,
-	//		Message: "回撤失败",
-	//	})
-	//	return
-	//}
+	if t := tx.Save(&grant); t.RowsAffected <= 0 {
+		ctx.JSON(http.StatusOK, response.Response{
+			Code:    40400,
+			Message: "回撤失败",
+		})
+		return
+	}
 
 	if t := tx.Delete(&grant); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "回撤失败")
+		response.Fail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantPosition{}); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "回撤失败")
+		response.Fail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDevice{}); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "回撤失败")
+		response.Fail(ctx, "回撤失败")
 		return
 	}
 
 	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDetail{}); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "回撤失败")
+		response.Fail(ctx, "回撤失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToGrantByPaginate(ctx *gin.Context) {
 
-	var query asset.ToGrantByPaginateFormer
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request asset.ToGrantByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	responses := response.Paginate{
-		Page: query.GetPage(),
-		Size: query.GetSize(),
+		Page: request.GetPage(),
+		Size: request.GetSize(),
 		Data: make([]any, 0),
 	}
 
@@ -463,12 +464,12 @@ func ToGrantByPaginate(ctx *gin.Context) {
 			Preload("BindDevices", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 			Preload("BindDevices.Device", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 			Order("id desc").
-			Offset(query.GetOffset()).
-			Limit(query.GetLimit()).
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
 			Find(&grants)
 
 		for _, item := range grants {
-			items := assetResponse.ToGrantByPaginateResponse{
+			items := assetResponse.ToGrantByPaginate{
 				Id:        item.Id,
 				Remark:    item.Remark,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
@@ -477,7 +478,7 @@ func ToGrantByPaginate(ctx *gin.Context) {
 				items.Package = item.Package.Name
 			}
 			for _, value := range item.BindDevices {
-				items.Devices = append(items.Devices, assetResponse.ToGrantByPaginateOfDeviceResponse{
+				items.Devices = append(items.Devices, assetResponse.ToGrantByPaginateOfDevice{
 					Name:   value.Device.Name,
 					Number: value.Number,
 				})
@@ -487,5 +488,5 @@ func ToGrantByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }

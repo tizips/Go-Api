@@ -26,11 +26,13 @@ func OmitKey(method string, path string) string {
 func Omits() []Api {
 	return []Api{
 
+		{Method: http.MethodPost, Path: "/admin/upload"},
 		{Method: http.MethodPost, Path: "/admin/login/account"},
 		{Method: http.MethodPost, Path: "/admin/login/qrcode"},
 		{Method: http.MethodGet, Path: "/admin/account/information"},
 		{Method: http.MethodGet, Path: "/admin/account/module"},
 		{Method: http.MethodGet, Path: "/admin/account/permission"},
+		{Method: http.MethodPost, Path: "/admin/account/logout"},
 
 		{Method: http.MethodGet, Path: "/admin/site/helper/apis"},
 		{Method: http.MethodGet, Path: "/admin/site/auth/permission/parents"},

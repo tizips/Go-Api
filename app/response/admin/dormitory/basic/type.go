@@ -1,26 +1,26 @@
 package basic
 
-type ToTypeByListResponse struct {
-	Id        uint                        `json:"id"`
-	Name      string                      `json:"name"`
-	Beds      []ToTypeByListOfBedResponse `json:"beds,omitempty"`
-	Order     uint                        `json:"order"`
-	IsEnable  uint8                       `json:"is_enable"`
-	CreatedAt string                      `json:"created_at"`
+type ToTypeByList struct {
+	Id        uint                `json:"id"`
+	Name      string              `json:"name"`
+	Beds      []ToTypeByListOfBed `json:"beds,omitempty"`
+	Order     uint                `json:"order"`
+	IsEnable  uint8               `json:"is_enable"`
+	CreatedAt string              `json:"created_at"`
 }
 
-type ToTypeByListOfBedResponse struct {
+type ToTypeByListOfBed struct {
 	Name     string `json:"name"`
 	IsPublic uint8  `json:"is_public"`
 }
 
-type ToTypeByOnlineResponse struct {
-	Id   uint                          `json:"id"`
-	Name string                        `json:"name"`
-	Beds []ToTypeByOnlineOfBedResponse `json:"beds,omitempty"`
+type ToTypeByOnline struct {
+	Id   uint                  `json:"id"`
+	Name string                `json:"name"`
+	Beds []ToTypeByOnlineOfBed `json:"beds,omitempty"`
 }
 
-type ToTypeByOnlineOfBedResponse struct {
+type ToTypeByOnlineOfBed struct {
 	Id   uint   `json:"id"`
 	Name string `json:"name"`
 }

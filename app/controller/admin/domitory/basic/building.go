@@ -3,8 +3,8 @@ package basic
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/constant"
-	"saas/app/form/admin/dormitory/basic"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/basic"
 	basicResponse "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -13,88 +13,88 @@ import (
 
 func DoBuildingByCreate(ctx *gin.Context) {
 
-	var former basic.DoBuildingByCreateFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoBuildingByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	building := model.DorBuilding{
-		Name:     former.Name,
-		Order:    former.Order,
-		IsEnable: former.IsEnable,
-		IsPublic: former.IsPublic,
+		Name:     request.Name,
+		Order:    request.Order,
+		IsEnable: request.IsEnable,
+		IsPublic: request.IsPublic,
 	}
 
 	if data.Database.Create(&building); building.Id <= 0 {
-		response.ToResponseByFail(ctx, "添加失败")
+		response.Fail(ctx, "添加失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoBuildingByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var former basic.DoBuildingByUpdateFormer
-	if err = ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoBuildingByUpdate
+	if err = ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var building model.DorBuilding
-	data.Database.First(&building, id)
+	data.Database.Find(&building, id)
 	if building.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该楼栋")
+		response.NotFound(ctx, "未找到该楼栋")
 		return
 	}
 
-	if building.IsEnable != former.IsEnable {
+	if building.IsEnable != request.IsEnable {
 		var peoples int64 = 0
 		data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
-			response.ToResponseByFail(ctx, "该楼栋已有人入住，无法上下架")
+			response.Fail(ctx, "该楼栋已有人入住，无法上下架")
 			return
 		}
 	}
 
-	building.Name = former.Name
-	building.Order = former.Order
-	building.IsEnable = former.IsEnable
+	building.Name = request.Name
+	building.Order = request.Order
+	building.IsEnable = request.IsEnable
 
 	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "修改失败")
+		response.Fail(ctx, "修改失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoBuildingByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil || id <= 0 {
-		response.ToResponseByFailRequestMessage(ctx, "ID获取失败")
+		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var building model.DorBuilding
-	data.Database.First(&building, id)
+	data.Database.Find(&building, id)
 	if building.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该楼栋")
+		response.NotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
 	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		response.ToResponseByFail(ctx, "该楼栋已有人入住，无法删除")
+		response.Fail(ctx, "该楼栋已有人入住，无法删除")
 		return
 	}
 
@@ -102,63 +102,63 @@ func DoBuildingByDelete(ctx *gin.Context) {
 
 	if t := tx.Delete(&building); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorRoom{}); t.Error != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorRoom{}); t.Error != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	if t := tx.Where("building_id=?", building.Id).Delete(&model.DorBed{}); t.Error != nil {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "删除失败")
+		response.Fail(ctx, "删除失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func DoBuildingByEnable(ctx *gin.Context) {
 
-	var former basic.DoBuildingByEnableFormer
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.DoBuildingByEnable
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var building model.DorBuilding
-	data.Database.First(&building, former.Id)
+	data.Database.Find(&building, request.Id)
 	if building.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "未找到该楼栋")
+		response.NotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
 	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
-		response.ToResponseByFail(ctx, "该楼栋已有人入住，无法上下架")
+		response.Fail(ctx, "该楼栋已有人入住，无法上下架")
 		return
 	}
 
-	building.IsEnable = former.IsEnable
+	building.IsEnable = request.IsEnable
 
 	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
-		response.ToResponseByFail(ctx, "启禁失败")
+		response.Fail(ctx, "启禁失败")
 		return
 	}
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }
 
 func ToBuildingByList(ctx *gin.Context) {
@@ -169,7 +169,7 @@ func ToBuildingByList(ctx *gin.Context) {
 	data.Database.Order("`order` asc, `id` desc").Find(&buildings)
 
 	for _, item := range buildings {
-		responses = append(responses, basicResponse.ToBuildingByListResponse{
+		responses = append(responses, basicResponse.ToBuildingByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -179,14 +179,14 @@ func ToBuildingByList(ctx *gin.Context) {
 		})
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }
 
 func ToBuildingByOnline(ctx *gin.Context) {
 
-	var query basic.ToBuildingByOnlineFormer
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request basic.ToBuildingByOnline
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
@@ -194,23 +194,23 @@ func ToBuildingByOnline(ctx *gin.Context) {
 
 	tx := data.Database.Where("`is_enable`=?", constant.IsEnableYes)
 
-	if query.IsPublic > 0 {
-		tx = tx.Where("`is_public`=?", query.IsPublic)
+	if request.IsPublic > 0 {
+		tx = tx.Where("`is_public`=?", request.IsPublic)
 	}
 
 	var buildings []model.DorBuilding
 	tx.Order("`order` asc, `id` desc").Find(&buildings)
 
 	for _, item := range buildings {
-		items := basicResponse.ToBuildingByOnlineResponse{
+		items := basicResponse.ToBuildingByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		}
-		if query.WithPublic {
+		if request.WithPublic {
 			items.IsPublic = item.IsPublic
 		}
 		responses = append(responses, items)
 	}
 
-	response.ToResponseBySuccessList(ctx, responses)
+	response.SuccessByList(ctx, responses)
 }

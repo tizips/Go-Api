@@ -8,9 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-module/carbon/v2"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"saas/app/constant"
-	"saas/app/form/admin/dormitory/stay"
 	"saas/app/model"
+	"saas/app/request/admin/dormitory/stay"
 	stayResponse "saas/app/response/admin/dormitory/stay"
 	"saas/kernel/config"
 	"saas/kernel/data"
@@ -20,43 +21,43 @@ import (
 
 func ToPeopleByPaginate(ctx *gin.Context) {
 
-	var query stay.ToPeopleByPaginateForm
-	if err := ctx.ShouldBindQuery(&query); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request stay.ToPeopleByPaginate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
-	tx := data.Database.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), query.Status)
+	tx := data.Database.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), request.Status)
 
-	if query.Floor > 0 {
-		tx = tx.Where("`floor_id`=?", query.Floor)
-	} else if query.Building > 0 {
-		tx = tx.Where("`building_id`=?", query.Building)
+	if request.Floor > 0 {
+		tx = tx.Where("`floor_id`=?", request.Floor)
+	} else if request.Building > 0 {
+		tx = tx.Where("`building_id`=?", request.Building)
 	}
 
-	if query.IsTemp > 0 {
-		tx = tx.Where(fmt.Sprintf("%s.`is_temp`=?", model.TableDorPeople), query.IsTemp)
+	if request.IsTemp > 0 {
+		tx = tx.Where(fmt.Sprintf("%s.`is_temp`=?", model.TableDorPeople), request.IsTemp)
 	}
 
-	if query.Keyword != "" {
+	if request.Keyword != "" {
 
 		condition := data.Database.Select("1")
 
-		if query.Type == "mobile" {
+		if request.Type == "mobile" {
 			condition = condition.
 				Table(model.TableMemMember).
 				Where(fmt.Sprintf("%s.`member_id`=%s.`id`", model.TableDorPeople, model.TableMemMember)).
-				Where(fmt.Sprintf("%s.`mobile`=?", model.TableMemMember), query.Keyword)
-		} else if query.Type == "room" {
+				Where(fmt.Sprintf("%s.`mobile`=?", model.TableMemMember), request.Keyword)
+		} else if request.Type == "room" {
 			condition = condition.
 				Table(model.TableDorRoom).
 				Where(fmt.Sprintf("%s.`room_id`=%s.`id`", model.TableDorPeople, model.TableDorRoom)).
-				Where(fmt.Sprintf("%s.`name`=?", model.TableDorRoom), query.Keyword)
+				Where(fmt.Sprintf("%s.`name`=?", model.TableDorRoom), request.Keyword)
 		} else {
 			condition = condition.
 				Table(model.TableMemMember).
 				Where(fmt.Sprintf("%s.`member_id`=%s.`id`", model.TableDorPeople, model.TableMemMember)).
-				Where(fmt.Sprintf("%s.`name`=?", model.TableMemMember), query.Keyword)
+				Where(fmt.Sprintf("%s.`name`=?", model.TableMemMember), request.Keyword)
 		}
 
 		tx = tx.Where("exists (?)", condition)
@@ -66,8 +67,8 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 
 	responses := response.Paginate{
 		Total: 0,
-		Page:  query.GetPage(),
-		Size:  query.GetSize(),
+		Page:  request.GetPage(),
+		Size:  request.GetSize(),
 		Data:  make([]any, 0),
 	}
 
@@ -87,13 +88,13 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 			Preload("Room", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 			Preload("Bed", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 			Order(fmt.Sprintf("%s.`id` desc", model.TableDorPeople)).
-			Offset(query.GetOffset()).
-			Limit(query.GetLimit()).
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
 			Find(&peoples)
 
 		for _, item := range peoples {
 
-			results := stayResponse.ToPeopleByPaginateResponse{
+			results := stayResponse.ToPeopleByPaginate{
 				Id:        item.Id,
 				Category:  item.Category.Name,
 				Building:  item.Building.Name,
@@ -115,7 +116,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 				results.Titles = item.Staff.Title
 			}
 			if item.Certification != nil && item.Certification.Id > 0 {
-				certification := stayResponse.ToPeopleByPaginateOfCertificationResponse{
+				certification := stayResponse.ToPeopleByPaginateOfCertification{
 					No: item.Certification.No,
 				}
 				results.Certification = certification
@@ -124,45 +125,45 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 		}
 	}
 
-	response.ToResponseBySuccessPaginate(ctx, responses)
+	response.SuccessByPaginate(ctx, responses)
 }
 
 func DoPeopleByCreate(ctx *gin.Context) {
 
-	var former stay.DoPeopleByCreateForm
-	if err := ctx.ShouldBind(&former); err != nil {
-		response.ToResponseByFailRequest(ctx, err)
+	var request stay.DoPeopleByCreate
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var bed model.DorBed
-	data.Database.Preload("Building").Preload("Floor").Preload("Room").Preload("Type").Where("`is_enable`=?", constant.IsEnableYes).First(&bed, former.Bed)
+	data.Database.Preload(clause.Associations).Where("`is_enable`=?", constant.IsEnableYes).Find(&bed, request.Bed)
 	if bed.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "床位不存在")
+		response.NotFound(ctx, "床位不存在")
 		return
 	}
 
 	var category model.DorStayCategory
-	data.Database.Where("is_enable", constant.IsEnableYes).First(&category, former.Category)
+	data.Database.Where("is_enable", constant.IsEnableYes).Find(&category, request.Category)
 	if category.Id <= 0 {
-		response.ToResponseByNotFound(ctx, "类型不存在")
+		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), former.Mobile, model.DorPeopleStatusLive).Count(&count)
+	data.Database.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
 	if count > 0 {
-		response.ToResponseByFail(ctx, "该手机号已办理了入住，无法重复办理")
+		response.Fail(ctx, "该手机号已办理了入住，无法重复办理")
 		return
 	}
 
 	var member model.MemMember
-	data.Database.Where("`mobile`=?", former.Mobile).First(&member)
+	data.Database.Where("`mobile`=?", request.Mobile).Find(&member)
 	if member.Id == "" {
 
-		lock, err := redislock.New(data.Redis).Obtain(ctx, "lock:member:"+former.Mobile, time.Second*30, nil)
+		lock, err := redislock.New(data.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, nil)
 		if err != nil {
-			response.ToResponseByFail(ctx, "办理失败")
+			response.Fail(ctx, "办理失败")
 			return
 		}
 
@@ -170,20 +171,20 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 		node, err := snowflake.NewNode(config.Values.Server.Node)
 		if err != nil {
-			response.ToResponseByFail(ctx, "办理失败")
+			response.Fail(ctx, "办理失败")
 			return
 		}
 
 		member = model.MemMember{
 			Id:       node.Generate().String(),
-			Mobile:   former.Mobile,
-			Name:     former.Name,
-			Nickname: former.Name,
+			Mobile:   request.Mobile,
+			Name:     request.Name,
+			Nickname: request.Name,
 			IsEnable: constant.IsEnableYes,
 		}
 
 		if t := data.Database.Create(&member); t.RowsAffected <= 0 {
-			response.ToResponseByFail(ctx, "办理失败")
+			response.Fail(ctx, "办理失败")
 			return
 		}
 	}
@@ -198,19 +199,19 @@ func DoPeopleByCreate(ctx *gin.Context) {
 		BedId:      bed.Id,
 		TypeId:     bed.TypeId,
 		MemberId:   member.Id,
-		Start:      carbon.Date{Carbon: carbon.Parse(former.Start)},
+		Start:      carbon.Date{Carbon: carbon.Parse(request.Start)},
 		Status:     model.DorPeopleStatusLive,
 		IsTemp:     category.IsTemp,
-		Remark:     former.Remark,
+		Remark:     request.Remark,
 	}
 
-	if former.End != "" {
-		people.End = &carbon.Date{Carbon: carbon.Parse(former.End)}
+	if request.End != "" {
+		people.End = &carbon.Date{Carbon: carbon.Parse(request.End)}
 	}
 
 	if t := tx.Create(&people); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "办理失败")
+		response.Fail(ctx, "办理失败")
 		return
 	}
 
@@ -218,7 +219,7 @@ func DoPeopleByCreate(ctx *gin.Context) {
 	masterName := member.Name
 
 	var master model.DorPeople
-	tx.Preload("Master.Member").Where("`bed_id`=? and `master_id`<>? and `status`=?", people.BedId, 0, model.DorPeopleStatusLive).First(&master)
+	tx.Preload("Master.Member").Where("`bed_id`=? and `master_id`<>? and `status`=?", people.BedId, 0, model.DorPeopleStatusLive).Find(&master)
 	if master.MasterId > 0 {
 		masterId = master.MasterId
 		masterName = master.Member.Name
@@ -230,7 +231,7 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 	if t := tx.Model(&model.DorPeople{}).Where("`id`=?", people.Id).UpdateColumn("`master_id`=?", masterId); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "办理失败")
+		response.Fail(ctx, "办理失败")
 		return
 	}
 
@@ -261,11 +262,11 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 	if t := tx.Create(&log); t.RowsAffected <= 0 {
 		tx.Rollback()
-		response.ToResponseByFail(ctx, "办理失败")
+		response.Fail(ctx, "办理失败")
 		return
 	}
 
 	tx.Commit()
 
-	response.ToResponseBySuccess(ctx)
+	response.Success(ctx)
 }

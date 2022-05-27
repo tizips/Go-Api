@@ -1,6 +1,6 @@
 package auth
 
-type ToAdminByPaginateResponse struct {
+type ToAdminByPaginate struct {
 	Id       uint   `json:"id"`
 	Username string `json:"username"`
 	Nickname string `json:"nickname"`

@@ -11,19 +11,23 @@ import (
 )
 
 var Logger struct {
-	Api *logrus.Logger
-	SQL *logrus.Logger
+	Api       *logrus.Logger
+	SQL       *logrus.Logger
+	Exception *logrus.Logger
+	Amqp      *logrus.Logger
 }
 
 func InitLogger() {
-
-	fmt.Println(config.Application.Path)
 
 	folder()
 
 	api()
 
 	sql()
+
+	exception()
+
+	amqp()
 
 }
 
@@ -88,12 +92,64 @@ func sql() {
 
 }
 
-func path(filename string) string {
+func exception() {
 
-	path := fmt.Sprintf("%s/logs", config.Application.Public)
-	if filename != "" {
-		path += "/" + filename + ".log"
+	filename := path("exception")
+
+	_, err := dir.Touch(filename)
+	if err != nil {
+		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+		os.Exit(1)
 	}
 
-	return path
+	writer, _ := rotatelogs.New(
+		filename+".%Y%m%d",
+		rotatelogs.WithLinkName(filename),
+		rotatelogs.WithMaxAge(time.Hour*24*30),
+		rotatelogs.WithRotationTime(time.Hour*24),
+	)
+
+	Logger.Exception = logrus.New()
+
+	Logger.Exception.SetFormatter(&logrus.JSONFormatter{})
+	Logger.Exception.Hooks = make(logrus.LevelHooks)
+	Logger.Exception.ExitFunc = os.Exit
+	Logger.Exception.SetOutput(writer)
+
+}
+
+func amqp() {
+
+	filename := path("amqp")
+
+	_, err := dir.Touch(filename)
+	if err != nil {
+		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+		os.Exit(1)
+	}
+
+	writer, _ := rotatelogs.New(
+		filename+".%Y%m%d",
+		rotatelogs.WithLinkName(filename),
+		rotatelogs.WithMaxAge(time.Hour*24*30),
+		rotatelogs.WithRotationTime(time.Hour*24),
+	)
+
+	Logger.Amqp = logrus.New()
+
+	Logger.Amqp.SetFormatter(&logrus.JSONFormatter{})
+	Logger.Amqp.Hooks = make(logrus.LevelHooks)
+	Logger.Amqp.ExitFunc = os.Exit
+	Logger.Amqp.SetOutput(writer)
+
+}
+
+func path(filename string) string {
+
+	filepath := fmt.Sprintf("%s/logs", config.Application.Runtime)
+	if filename != "" {
+		filepath += "/" + filename + ".log"
+	}
+
+	return filepath
 }

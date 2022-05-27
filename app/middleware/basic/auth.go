@@ -3,30 +3,30 @@ package basic
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/service/basic"
-	"saas/kernel/auth"
+	"saas/kernel/authorize"
 	"saas/kernel/response"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
-		if !auth.Check(ctx) {
+		if !authorize.Check(ctx) {
 			ctx.Abort()
-			response.ToResponseByUnauthorized(ctx)
+			response.Unauthorized(ctx)
 			return
 		}
 
-		claims := auth.Jwt(ctx)
+		claims := authorize.Jwt(ctx)
 
 		if !claims.VerifyIssuer("admin", true) {
 			ctx.Abort()
-			response.ToResponseByUnauthorized(ctx)
+			response.Unauthorized(ctx)
 			return
 		}
 
 		if !basic.CheckJwt(ctx, "admin", *claims) {
 			ctx.Abort()
-			response.ToResponseByUnauthorized(ctx)
+			response.Unauthorized(ctx)
 			return
 		}
 

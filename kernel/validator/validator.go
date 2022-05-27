@@ -26,6 +26,10 @@ func Init() {
 	validate = binding.Validator.Engine().(*validator.Validate)
 
 	_ = validate.RegisterValidation("mobile", mobile)
+	_ = validate.RegisterValidation("dir", dir)
+	_ = validate.RegisterValidation("username", username)
+	_ = validate.RegisterValidation("password", password)
+	_ = validate.RegisterValidation("snowflake", snowflake)
 
 	//注册翻译器
 	_ = zhTranslation.RegisterDefaultTranslations(validate, trans)
@@ -38,8 +42,8 @@ func Translate(err error) string {
 
 	errors := err.(validator.ValidationErrors)
 
-	for _, err := range errors {
-		result = err.Translate(trans)
+	for _, item := range errors {
+		result = item.Translate(trans)
 		break
 	}
 
@@ -52,8 +56,8 @@ func Translates(err error) map[string][]string {
 
 	errors := err.(validator.ValidationErrors)
 
-	for _, err := range errors {
-		result[err.Field()] = append(result[err.Field()], err.Translate(trans))
+	for _, item := range errors {
+		result[item.Field()] = append(result[item.Field()], item.Translate(trans))
 	}
 
 	return result

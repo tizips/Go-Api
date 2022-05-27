@@ -63,3 +63,23 @@ func idCard(fl validator.FieldLevel) bool {
 	}
 	return a1Str == signChar
 }
+
+func dir(fl validator.FieldLevel) bool {
+	ok, _ := regexp.MatchString(`^(/?[\da-zA-Z]+){1,3}$`, fl.Field().String())
+	return ok
+}
+
+func username(fl validator.FieldLevel) bool {
+	ok, _ := regexp.MatchString(`^[a-zA-Z\d-_]{4,20}$`, fl.Field().String())
+	return ok
+}
+
+func password(fl validator.FieldLevel) bool {
+	ok, _ := regexp.MatchString(`^[a-zA-Z\d-_@$&%!]{4,20}$`, fl.Field().String())
+	return ok
+}
+
+func snowflake(fl validator.FieldLevel) bool {
+	ok, _ := regexp.MatchString(`^\d{16,64}$`, fl.Field().String())
+	return ok
+}
