@@ -8,12 +8,12 @@ import (
 const TableDorFloor = "dor_floor"
 
 type DorFloor struct {
-	Id         uint `gorm:"primary_key"`
-	BuildingId uint
+	Id         int `gorm:"primary_key"`
+	BuildingId int
 	Name       string
-	Order      uint
-	IsEnable   uint8
-	IsPublic   uint8
+	Order      int
+	IsEnable   int8
+	IsPublic   int8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt

@@ -11,7 +11,7 @@ import (
 
 // mobile 验证手机号码
 func mobile(fl validator.FieldLevel) bool {
-	ok, _ := regexp.MatchString(`^1[0-9]{10}$`, fl.Field().String())
+	ok, _ := regexp.MatchString(`^1\d{10}$`, fl.Field().String())
 	return ok
 }
 
@@ -33,8 +33,8 @@ func idCard(fl validator.FieldLevel) bool {
 		10: 2,
 	}
 
-	var idStr = strings.ToUpper(string(id))
-	var reg, err = regexp.Compile(`^[0-9]{17}[0-9X]$`)
+	var idStr = strings.ToUpper(id)
+	var reg, err = regexp.Compile(`^\d{17}[\dX]$`)
 	if err != nil {
 		return false
 	}
@@ -70,12 +70,12 @@ func dir(fl validator.FieldLevel) bool {
 }
 
 func username(fl validator.FieldLevel) bool {
-	ok, _ := regexp.MatchString(`^[a-zA-Z\d-_]{4,20}$`, fl.Field().String())
+	ok, _ := regexp.MatchString(`^[a-zA-Z\d\-_]{4,20}$`, fl.Field().String())
 	return ok
 }
 
 func password(fl validator.FieldLevel) bool {
-	ok, _ := regexp.MatchString(`^[a-zA-Z\d-_@$&%!]{4,20}$`, fl.Field().String())
+	ok, _ := regexp.MatchString(`^[a-zA-Z\d\-_@$&%!]{6,32}$`, fl.Field().String())
 	return ok
 }
 

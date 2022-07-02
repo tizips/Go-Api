@@ -1,20 +1,28 @@
 package system
 
 import (
-	"flag"
-	"fmt"
+	"github.com/gookit/color"
+	"github.com/manifoldco/promptui"
 	"golang.org/x/crypto/bcrypt"
+	"strings"
 )
 
 func Password() {
 
-	var password string
+	prompt := promptui.Prompt{
+		Label: "密码",
+	}
 
-	flag.StringVar(&password, "password", "", "密码生成")
+	password, _ := prompt.Run()
 
-	flag.Parse()
+	password = strings.TrimSpace(password)
+
+	if password == "" {
+		color.Error.Println("密码不能为空")
+		return
+	}
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
-	fmt.Println(string(hash))
+	color.Success.Println(string(hash))
 }

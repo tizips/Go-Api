@@ -1,20 +1,20 @@
 package asset
 
 type ToPackageByPaginate struct {
-	Id        uint                           `json:"id"`
+	Id        int                            `json:"id"`
 	Name      string                         `json:"name"`
 	Devices   []ToPackageByPaginateOfDevices `json:"devices"`
 	CreatedAt string                         `json:"created_at"`
 }
 
 type ToPackageByPaginateOfDevices struct {
-	Category uint   `json:"category"`
-	Id       uint   `json:"id"`
+	Category int    `json:"category"`
+	Id       int    `json:"id"`
 	Name     string `json:"name"`
-	Number   uint   `json:"number"`
+	Number   int    `json:"number"`
 }
 
 type ToPackageByOnline struct {
-	Id   uint   `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }

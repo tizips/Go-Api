@@ -6,7 +6,7 @@ import (
 	"saas/kernel/data"
 )
 
-func TreePermission(module uint, parent bool, simple bool) []auth.TreePermission {
+func TreePermission(module int, parent bool, simple bool) []auth.TreePermission {
 
 	tx := data.Database
 
@@ -66,7 +66,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 				if item.Id == value.ParentI1 {
 					childrenI1 := auth.TreePermission{
 						Id:        value.Id,
-						Parents:   []uint{value.ParentI1},
+						Parents:   []int{value.ParentI1},
 						Name:      value.Name,
 						Slug:      value.Slug,
 						Method:    value.Method,
@@ -79,7 +79,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 							if childrenI1.Id == val.ParentI2 {
 								childrenI2 := auth.TreePermission{
 									Id:        val.Id,
-									Parents:   []uint{val.ParentI1, val.ParentI2},
+									Parents:   []int{val.ParentI1, val.ParentI2},
 									Name:      val.Name,
 									Slug:      val.Slug,
 									Method:    val.Method,

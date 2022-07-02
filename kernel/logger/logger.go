@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"os"
 	"saas/kernel/config"
-	"saas/kernel/dir"
 	"time"
 )
 
@@ -33,10 +32,7 @@ func InitLogger() {
 
 func folder() {
 
-	path := path("")
-
-	err := dir.Mkdir(path)
-	if err != nil {
+	if err := os.MkdirAll(path(""), 0750); err != nil {
 		fmt.Printf("日志文件夹创建失败:%s\nerror:%v", path, err)
 		os.Exit(1)
 	}
@@ -47,10 +43,11 @@ func api() {
 
 	filename := path("api")
 
-	_, err := dir.Touch(filename)
-	if err != nil {
-		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
-		os.Exit(1)
+	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
+		if _, err := os.Create(filename); err != nil {
+			fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+			os.Exit(1)
+		}
 	}
 
 	writer, _ := rotatelogs.New(
@@ -70,10 +67,11 @@ func sql() {
 
 	filename := path("sql")
 
-	_, err := dir.Touch(filename)
-	if err != nil {
-		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
-		os.Exit(1)
+	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
+		if _, err := os.Create(filename); err != nil {
+			fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+			os.Exit(1)
+		}
 	}
 
 	writer, _ := rotatelogs.New(
@@ -96,10 +94,11 @@ func exception() {
 
 	filename := path("exception")
 
-	_, err := dir.Touch(filename)
-	if err != nil {
-		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
-		os.Exit(1)
+	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
+		if _, err := os.Create(filename); err != nil {
+			fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+			os.Exit(1)
+		}
 	}
 
 	writer, _ := rotatelogs.New(
@@ -122,10 +121,11 @@ func amqp() {
 
 	filename := path("amqp")
 
-	_, err := dir.Touch(filename)
-	if err != nil {
-		fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
-		os.Exit(1)
+	if _, err := os.Stat(filename); err != nil && os.IsNotExist(err) {
+		if _, err := os.Create(filename); err != nil {
+			fmt.Printf("日志文件创建失败:%s\nerror:%v", filename, err)
+			os.Exit(1)
+		}
 	}
 
 	writer, _ := rotatelogs.New(
@@ -147,6 +147,7 @@ func amqp() {
 func path(filename string) string {
 
 	filepath := fmt.Sprintf("%s/logs", config.Application.Runtime)
+
 	if filename != "" {
 		filepath += "/" + filename + ".log"
 	}

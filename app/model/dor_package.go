@@ -8,7 +8,7 @@ import (
 const TableDorPackage = "dor_package"
 
 type DorPackage struct {
-	Id        uint `gorm:"primaryKey"`
+	Id        int `gorm:"primaryKey"`
 	Name      string
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime

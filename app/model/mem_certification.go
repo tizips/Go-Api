@@ -8,7 +8,7 @@ import (
 const TableMemCertification = "mem_certification"
 
 type MemCertification struct {
-	Id         uint `gorm:"primary_key"`
+	Id         int `gorm:"primary_key"`
 	MemberId   string
 	Status     string
 	Type       string

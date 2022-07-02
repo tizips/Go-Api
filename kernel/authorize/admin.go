@@ -9,19 +9,22 @@ import (
 )
 
 func Admin(ctx *gin.Context) model.SysAdmin {
+
+	admin := model.SysAdmin{}
+
 	if Check(ctx) {
-		if admin, exist := ctx.Get(constant.ContextAdmin); exist {
-			return admin.(model.SysAdmin)
+		if temp, exist := ctx.Get(constant.ContextAdmin); exist {
+			admin = temp.(model.SysAdmin)
 		} else {
-			var SysAdmin model.SysAdmin
-			cache.FindById(ctx, &SysAdmin, Id(ctx))
-			if SysAdmin.Id > 0 {
-				ctx.Set(constant.ContextAdmin, SysAdmin)
-				return SysAdmin
+			cache.FindById(ctx, &admin, Id(ctx))
+			if admin.Id > 0 {
+				ctx.Set(constant.ContextAdmin, admin)
+				return admin
 			}
 		}
 	}
-	return model.SysAdmin{}
+
+	return admin
 }
 
 func Check(ctx *gin.Context) bool {
@@ -32,11 +35,11 @@ func Check(ctx *gin.Context) bool {
 	}
 }
 
-func Id(ctx *gin.Context) uint {
-	var id uint = 0
+func Id(ctx *gin.Context) int {
+	var id = 0
 	if ID, exist := ctx.Get(constant.ContextID); exist && ID != "" {
 		if t, err := strconv.Atoi(ID.(string)); err == nil {
-			id = uint(t)
+			id = t
 		}
 	}
 	return id

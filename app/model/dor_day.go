@@ -7,16 +7,16 @@ import (
 const TableDorDay = "dor_day"
 
 type DorDay struct {
-	Id             uint `gorm:"primary_key"`
-	CategoryId     uint
-	TypeId         uint
-	BuildingId     uint
-	FloorId        uint
-	RoomId         uint
-	BedId          uint
-	PeopleId       uint
+	Id             int `gorm:"primary_key"`
+	CategoryId     int
+	TypeId         int
+	BuildingId     int
+	FloorId        int
+	RoomId         int
+	BedId          int
+	PeopleId       int
 	MemberId       string
-	MasterPeopleId uint
+	MasterPeopleId int
 	MasterMemberId string
 	Date           carbon.Date
 	CreatedAt      carbon.DateTime

@@ -8,10 +8,10 @@ import (
 const TableDorType = "dor_type"
 
 type DorType struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	Name      string
-	Order     uint
-	IsEnable  uint8
+	Order     int
+	IsEnable  int8
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

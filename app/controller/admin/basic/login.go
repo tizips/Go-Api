@@ -1,9 +1,8 @@
 package basic
 
 import (
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-module/carbon/v2"
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
@@ -16,6 +15,7 @@ import (
 	"saas/kernel/config"
 	"saas/kernel/data"
 	basicResponse "saas/kernel/response"
+	"strconv"
 )
 
 func DoLoginByAccount(ctx *gin.Context) {
@@ -43,13 +43,13 @@ func DoLoginByAccount(ctx *gin.Context) {
 
 	now := carbon.Now()
 
-	claims := jwt.StandardClaims{
+	claims := jwt.RegisteredClaims{
 		Issuer:    "admin",
-		Id:        fmt.Sprintf("%d", SysAdmin.Id),
-		NotBefore: now.Timestamp(),
-		IssuedAt:  now.Timestamp(),
-		ExpiresAt: now.AddHours(config.Values.Jwt.Lifetime).Timestamp(),
-		Audience:  helperService.JwtToken(SysAdmin.Id),
+		ID:        strconv.Itoa(SysAdmin.Id),
+		NotBefore: jwt.NewNumericDate(now.Carbon2Time()),
+		IssuedAt:  jwt.NewNumericDate(now.Carbon2Time()),
+		ExpiresAt: jwt.NewNumericDate(now.AddHours(config.Values.Jwt.Lifetime).Carbon2Time()),
+		Subject:   helperService.JwtToken(SysAdmin.Id),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

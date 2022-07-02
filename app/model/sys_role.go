@@ -8,7 +8,7 @@ import (
 const TableSysRole = "sys_role"
 
 type SysRole struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	Name      string
 	Summary   string
 	CreatedAt carbon.DateTime

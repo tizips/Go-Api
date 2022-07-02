@@ -8,9 +8,9 @@ import (
 const TableDorGrant = "dor_grant"
 
 type DorGrant struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	Object    string
-	PackageId uint
+	PackageId int
 	Remark    string
 	Cancel    string
 	CreatedAt carbon.DateTime

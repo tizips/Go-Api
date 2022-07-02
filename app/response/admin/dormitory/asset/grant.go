@@ -1,7 +1,7 @@
 package asset
 
 type ToGrantByPaginate struct {
-	Id        uint                        `json:"id"`
+	Id        int                         `json:"id"`
 	Package   string                      `json:"package,omitempty"`
 	Devices   []ToGrantByPaginateOfDevice `json:"devices,omitempty"`
 	Remark    string                      `json:"remark"`
@@ -10,5 +10,5 @@ type ToGrantByPaginate struct {
 
 type ToGrantByPaginateOfDevice struct {
 	Name   string `json:"name"`
-	Number uint   `json:"number"`
+	Number int    `json:"number"`
 }

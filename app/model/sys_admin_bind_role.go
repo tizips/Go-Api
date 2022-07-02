@@ -5,9 +5,9 @@ import "gorm.io/gorm"
 const TableSysAdminBindRole = "sys_admin_bind_role"
 
 type SysAdminBindRole struct {
-	Id        uint `gorm:"primary_key"`
-	AdminId   uint
-	RoleId    uint
+	Id        int `gorm:"primary_key"`
+	AdminId   int
+	RoleId    int
 	DeletedAt gorm.DeletedAt
 
 	Role SysRole `gorm:"References:RoleId;foreignKey:Id"`

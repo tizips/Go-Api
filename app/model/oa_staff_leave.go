@@ -8,17 +8,17 @@ import (
 const TableOaStaffLeave = "oa_staff_leave"
 
 type OaStaffLeave struct {
-	Id          uint `gorm:"primary_key"`
+	Id          int `gorm:"primary_key"`
 	MemberId    string
-	StaffId     uint
+	StaffId     int
 	Channel     string
-	OpenId      uint
+	OpenId      int
 	LastWorkDay carbon.DateTime
 	ReasonType  string
 	ReasonMemo  string
 	PreStatus   string
 	Status      string
-	HandoverId  uint
+	HandoverId  int
 	CreatedAt   carbon.DateTime
 	UpdatedAt   carbon.DateTime
 	DeletedAt   gorm.DeletedAt

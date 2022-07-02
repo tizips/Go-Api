@@ -8,20 +8,20 @@ import (
 const TableDorGrantDetail = "dor_grant_detail"
 
 type DorGrantDetail struct {
-	Id         uint `gorm:"primary_key"`
-	GrantId    uint
-	PackageId  uint
-	PositionId uint
-	TypeId     uint
-	BuildingId uint
-	FloorId    uint
-	RoomId     uint
-	BedId      uint
-	PeopleId   uint
+	Id         int `gorm:"primary_key"`
+	GrantId    int
+	PackageId  int
+	PositionId int
+	TypeId     int
+	BuildingId int
+	FloorId    int
+	RoomId     int
+	BedId      int
+	PeopleId   int
 	MemberId   string `gorm:"default:null"`
-	DeviceId   uint
-	Number     uint
-	IsPublic   uint8
+	DeviceId   int
+	Number     int
+	IsPublic   int8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt

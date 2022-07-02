@@ -8,10 +8,10 @@ import (
 const TableDorGrantDevice = "dor_grant_device"
 
 type DorGrantDevice struct {
-	Id        uint `gorm:"primary_key"`
-	GrantId   uint
-	DeviceId  uint
-	Number    uint
+	Id        int `gorm:"primary_key"`
+	GrantId   int
+	DeviceId  int
+	Number    int
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

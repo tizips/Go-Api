@@ -152,8 +152,8 @@ func DoAdminByUpdate(ctx *gin.Context) {
 	}
 
 	var creates []model.SysAdminBindRole
-	var deletes []uint
-	var del []uint
+	var deletes []int
+	var del []int
 
 	for _, item := range request.Roles {
 		mark := true
@@ -298,7 +298,7 @@ func ToAdminByPaginate(ctx *gin.Context) {
 			}
 			for _, value := range item.BindRoles {
 				result.Roles = append(result.Roles, struct {
-					Id   uint   `json:"id"`
+					Id   int    `json:"id"`
 					Name string `json:"name"`
 				}{Id: value.Role.Id, Name: value.Role.Name})
 			}
@@ -317,7 +317,7 @@ func DoAdminByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if authorize.Id(ctx) == uint(id) {
+	if authorize.Id(ctx) == int(id) {
 		response.Fail(ctx, "无法删除自身账号")
 		return
 	}

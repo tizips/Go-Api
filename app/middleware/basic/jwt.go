@@ -1,11 +1,11 @@
 package basic
 
 import (
-	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/golang-module/carbon/v2"
 	"saas/app/constant"
+	"saas/app/service/basic"
 	"saas/app/service/helper"
 	"saas/kernel/config"
 	"saas/kernel/data"
@@ -13,47 +13,51 @@ import (
 
 func JwtParseMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if authorization := ctx.GetHeader("Authorization"); authorization != "" {
-			var claims jwt.StandardClaims
-			_, _ = jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
+
+		if authorization := ctx.GetHeader(constant.JwtAuthorization); authorization != "" {
+
+			var claims jwt.RegisteredClaims
+
+			token, _ := jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
 				return []byte(config.Values.Jwt.Secret), nil
 			})
-			if claims.Id != "" {
+
+			if token.Valid && claims.ID != "" {
 				now := carbon.Now()
-				if ok := claims.VerifyNotBefore(now.Timestamp(), false); ok {
-					if ok = claims.VerifyExpiresAt(now.Timestamp(), true); ok { //	生效的授权令牌操作
+				if ok := claims.VerifyNotBefore(now.Carbon2Time(), false); ok {
+					if ok = claims.VerifyExpiresAt(now.Carbon2Time(), true); ok { //	生效的授权令牌操作
 						set(ctx, claims)
-					} else if ok = claims.VerifyExpiresAt(now.SubHours(config.Values.Jwt.Lifetime).Timestamp(), true); ok { //	失效的授权令牌，重新发放
+					} else if ok = claims.VerifyExpiresAt(now.SubHours(config.Values.Jwt.Lifetime).Carbon2Time(), true); ok { //	失效的授权令牌，重新发放
 						refresh(ctx, claims)
 					}
 				}
-
-				ctx.Next()
 			}
 		}
+
+		ctx.Next()
 	}
 }
 
-func set(ctx *gin.Context, claims jwt.StandardClaims) {
-	ctx.Set(constant.ContextID, claims.Id)
+func set(ctx *gin.Context, claims jwt.RegisteredClaims) {
+	ctx.Set(constant.ContextID, claims.ID)
 	ctx.Set(constant.ContextJWT, claims)
 }
 
-func refresh(ctx *gin.Context, claims jwt.StandardClaims) {
+func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
-	cache, _ := data.Redis.HGetAll(ctx, refreshKey(claims.Audience)).Result()
+	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist("admin", "refresh", claims.Subject)).Result()
 
 	now := carbon.Now()
 
 	if len(cache) <= 0 {
 
 		expires := claims.ExpiresAt
-		audience := claims.Audience
+		subject := claims.Subject
 
-		claims.NotBefore = now.Timestamp()
-		claims.IssuedAt = now.Timestamp()
-		claims.ExpiresAt = now.AddHours(config.Values.Jwt.Lifetime).Timestamp()
-		claims.Audience = helper.JwtToken(claims.Id)
+		claims.NotBefore = jwt.NewNumericDate(now.Carbon2Time())
+		claims.IssuedAt = jwt.NewNumericDate(now.Carbon2Time())
+		claims.ExpiresAt = jwt.NewNumericDate(now.AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
+		claims.Subject = helper.JwtToken(claims.ID)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -61,11 +65,10 @@ func refresh(ctx *gin.Context, claims jwt.StandardClaims) {
 
 			set(ctx, claims)
 
-			ctx.Header("Authorization", signed)
+			ctx.Header(constant.JwtAuthorization, signed)
 
-			affected, err := data.Redis.HSet(ctx, refreshKey(audience), "token", signed, "created_at", now.ToDateTimeString()).Result()
-			if err == nil && affected > 0 {
-				data.Redis.ExpireAt(ctx, refreshKey(audience), carbon.CreateFromTimestamp(expires).AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
+			if affected, err := data.Redis.HSet(ctx, basic.Blacklist("admin", "refresh", subject), "token", signed, "created_at", now.ToDateTimeString()).Result(); err == nil && affected > 0 {
+				data.Redis.ExpireAt(ctx, basic.Blacklist("admin", "refresh", subject), carbon.Time2Carbon(expires.Time).AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
 			}
 		}
 
@@ -74,11 +77,7 @@ func refresh(ctx *gin.Context, claims jwt.StandardClaims) {
 		diff := now.DiffAbsInSeconds(carbon.Parse(cache["created_at"]))
 
 		if diff <= config.Values.Jwt.Leeway {
-			ctx.Header("Authorization", cache["token"])
+			ctx.Header(constant.JwtAuthorization, cache["token"])
 		}
 	}
-}
-
-func refreshKey(token string) string {
-	return fmt.Sprintf("saas:token:refresh:%s", token)
 }

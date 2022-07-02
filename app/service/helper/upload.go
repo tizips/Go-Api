@@ -8,16 +8,16 @@ import (
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
 	"mime/multipart"
+	"os"
 	"path"
 	"saas/kernel/config"
 	"saas/kernel/config/configs"
-	"saas/kernel/dir"
 	"strings"
 )
 
 func DoUploadBySimple(ctx *gin.Context, dirs string, file *multipart.FileHeader) (error, *UploadBySimple) {
 
-	if config.Values.File.Driver == configs.FileDriverQiniu {
+	if config.Values.Server.File == configs.ServerFileQiniu {
 		return doUploadBySimpleWithQiniu(ctx, dirs, file)
 	}
 
@@ -26,22 +26,16 @@ func DoUploadBySimple(ctx *gin.Context, dirs string, file *multipart.FileHeader)
 
 func doUploadBySimpleWithSystem(ctx *gin.Context, dirs string, file *multipart.FileHeader) (error, *UploadBySimple) {
 
-	if err := dir.Mkdir(config.Application.Runtime + "/" + config.Values.File.Path); err != nil {
-		return err, nil
+	filepath := "/upload"
+
+	if !strings.HasPrefix(dirs, "/") {
+		filepath += "/"
 	}
 
-	filepath := "/" + config.Values.File.Path
+	filepath += dirs
 
-	split := strings.Split(dirs, "/")
-
-	for _, item := range split {
-		if strings.TrimSpace(item) != "" {
-			filepath += "/" + item
-		}
-
-		if err := dir.Mkdir(config.Application.Runtime + filepath); err != nil {
-			return err, nil
-		}
+	if err := os.MkdirAll(config.Application.Runtime+filepath, 0750); err != nil {
+		return err, nil
 	}
 
 	node, err := snowflake.NewNode(config.Values.Server.Node)

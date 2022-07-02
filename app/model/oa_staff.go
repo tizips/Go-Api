@@ -8,16 +8,16 @@ import (
 const TableOaStaff = "oa_staff"
 
 type OaStaff struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	MemberId  string
 	No        string `gorm:"default:null"`
-	ManagerId uint
+	ManagerId int
 	Title     string
 	Email     string `gorm:"default:null"`
 	HiredDate carbon.DateTime
 	Remark    string
 	Status    string
-	IsEnable  uint8
+	IsEnable  int8
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

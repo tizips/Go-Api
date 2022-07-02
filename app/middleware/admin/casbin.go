@@ -15,10 +15,10 @@ func CasbinMiddleware() gin.HandlerFunc {
 		if !omit(ctx.Request.Method, ctx.FullPath()) {
 
 			//	判断该用户是否为开发组权限
-			if ok, _ := authorize.Casbin.HasRoleForUser(authorize.NameByAdmin(authorize.Id(ctx)), authorize.NameByRole(authorize.ROOT)); !ok {
+			if !authorize.Root(authorize.Id(ctx)) {
 
 				//	判断该用户是否有该接口的访问权限
-				if ok, _ = authorize.Casbin.Enforce(authorize.NameByAdmin(authorize.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
+				if ok, _ := authorize.Casbin.Enforce(authorize.NameByAdmin(authorize.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
 					ctx.Abort()
 					response.Forbidden(ctx)
 					return

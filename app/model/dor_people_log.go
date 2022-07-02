@@ -8,8 +8,8 @@ import (
 const TableDorPeopleLog = "dor_people_log"
 
 type DorPeopleLog struct {
-	Id        uint `gorm:"primary_key"`
-	PeopleId  uint
+	Id        int `gorm:"primary_key"`
+	PeopleId  int
 	MemberId  string
 	Status    string
 	Detail    string

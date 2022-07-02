@@ -8,15 +8,15 @@ import (
 const TableDorRoom = "dor_room"
 
 type DorRoom struct {
-	Id         uint `gorm:"primary_key"`
-	BuildingId uint
-	FloorId    uint
-	TypeId     uint
+	Id         int `gorm:"primary_key"`
+	BuildingId int
+	FloorId    int
+	TypeId     int
 	Name       string
-	Order      uint
-	IsFurnish  uint8
-	IsEnable   uint8
-	IsPublic   uint8
+	Order      int
+	IsFurnish  int8
+	IsEnable   int8
+	IsPublic   int8
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt

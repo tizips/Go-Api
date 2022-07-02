@@ -19,9 +19,9 @@ func DoRoleByCreate(ctx *gin.Context) {
 		return
 	}
 
-	var permissionsIds []uint
+	var permissionsIds []int
 
-	var modules, children1, children2, children3 []uint
+	var modules, children1, children2, children3 []int
 
 	for _, item := range request.Permissions {
 		if len(item) >= 4 {
@@ -64,12 +64,12 @@ func DoRoleByCreate(ctx *gin.Context) {
 		}
 	}
 
-	var temp = make(map[uint]uint, len(permissionsIds))
+	var temp = make(map[int]int, len(permissionsIds))
 	for _, item := range permissionsIds {
 		temp[item] = item
 	}
 
-	var bind []uint
+	var bind []int
 	for _, item := range temp {
 		bind = append(bind, item)
 	}
@@ -161,9 +161,9 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var permissionsIds []uint
+	var permissionsIds []int
 
-	var modules, children1, children2, children3 []uint
+	var modules, children1, children2, children3 []int
 
 	for _, item := range request.Permissions {
 		if len(item) >= 4 {
@@ -206,12 +206,12 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	var temp = make(map[uint]uint, len(permissionsIds))
+	var temp = make(map[int]int, len(permissionsIds))
 	for _, item := range permissionsIds {
 		temp[item] = item
 	}
 
-	var bind []uint
+	var bind []int
 	for _, item := range temp {
 		bind = append(bind, item)
 	}
@@ -227,7 +227,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	data.Database.Where("`role_id`=?", role.Id).Find(&role.BindPermissions)
 
 	var creates []model.SysRoleBindPermission
-	var deletes []uint
+	var deletes []int
 
 	if len(role.BindPermissions) > 0 {
 		for _, item := range bind {
@@ -275,7 +275,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 			return
 		}
 
-		var ids []uint
+		var ids []int
 		for _, item := range creates {
 			ids = append(ids, item.PermissionId)
 		}
@@ -425,7 +425,7 @@ func ToRoleByPaginate(ctx *gin.Context) {
 			}
 
 			for _, value := range item.BindPermissions {
-				items.Permissions = append(items.Permissions, []uint{value.Permission.ModuleId, value.Permission.ParentI1, value.Permission.ParentI2, value.PermissionId})
+				items.Permissions = append(items.Permissions, []int{value.Permission.ModuleId, value.Permission.ParentI1, value.Permission.ParentI2, value.PermissionId})
 			}
 
 			responses.Data = append(responses.Data, items)

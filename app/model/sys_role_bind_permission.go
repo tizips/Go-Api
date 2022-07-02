@@ -5,9 +5,9 @@ import "gorm.io/gorm"
 const TableSysRoleBindPermission = "sys_role_bind_permission"
 
 type SysRoleBindPermission struct {
-	Id           uint `gorm:"primary_key"`
-	RoleId       uint
-	PermissionId uint
+	Id           int `gorm:"primary_key"`
+	RoleId       int
+	PermissionId int
 	DeletedAt    gorm.DeletedAt
 
 	Permission SysPermission `gorm:"foreignKey:Id;references:PermissionId"`

@@ -1,5 +1,5 @@
 package helper
 
 type ToApiByList struct {
-	Module uint `form:"module" json:"module" binding:"required,gt=0"`
+	Module int `form:"module" json:"module" binding:"required,gt=0" label:"模块"`
 }

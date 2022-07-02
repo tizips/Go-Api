@@ -8,10 +8,10 @@ import (
 const TableSysPermission = "sys_permission"
 
 type SysPermission struct {
-	Id        uint `gorm:"primary_key"`
-	ModuleId  uint
-	ParentI1  uint `gorm:"column:parent_i1"`
-	ParentI2  uint `gorm:"column:parent_i2"`
+	Id        int `gorm:"primary_key"`
+	ModuleId  int
+	ParentI1  int `gorm:"column:parent_i1"`
+	ParentI2  int `gorm:"column:parent_i2"`
 	Name      string
 	Slug      string
 	Method    string

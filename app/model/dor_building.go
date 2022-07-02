@@ -8,11 +8,11 @@ import (
 const TableDorBuilding = "dor_building"
 
 type DorBuilding struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	Name      string
-	Order     uint
-	IsEnable  uint8
-	IsPublic  uint8
+	Order     int
+	IsEnable  int8
+	IsPublic  int8
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

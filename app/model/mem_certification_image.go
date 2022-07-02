@@ -8,9 +8,9 @@ import (
 const TableMemCertificationImage = "mem_certification_image"
 
 type MemCertificationImage struct {
-	Id              uint `gorm:"primary_key"`
+	Id              int `gorm:"primary_key"`
 	MemberId        string
-	CertificationId uint
+	CertificationId int
 	Url             string
 	CreatedAt       carbon.DateTime
 	UpdatedAt       carbon.DateTime

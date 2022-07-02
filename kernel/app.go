@@ -1,39 +1,55 @@
 package kernel
 
 import (
-	"os"
-	"saas/app/amqp"
+	"github.com/spf13/cobra"
 	"saas/app/crontab"
 	"saas/kernel/api"
 	"saas/kernel/authorize"
 	"saas/kernel/config"
 	"saas/kernel/data"
-	"saas/kernel/dir"
 	"saas/kernel/logger"
 	"saas/kernel/system"
 )
 
 func Application() {
 
-	servers := os.Args[1:]
-
-	if len(servers) <= 0 {
-		system.Help()
-		return
-	}
-
 	initialize()
 
-	switch servers[0] {
-	case "server":
-		system.Server()
-	case "root":
-		system.Root()
-	case "password":
-		system.Password()
-	default:
-		system.Help()
+	cmd := &cobra.Command{
+		Use:     "saas",
+		Short:   "一站式应用解决方案",
+		Version: "1.0.0",
 	}
+
+	server := &cobra.Command{
+		Use:   "server",
+		Short: "运行应用程序",
+		Run: func(cmd *cobra.Command, args []string) {
+			system.Server()
+		},
+	}
+
+	root := &cobra.Command{
+		Use:   "root",
+		Short: "生成系统开发账号",
+		Run: func(cmd *cobra.Command, args []string) {
+			system.Root()
+		},
+	}
+
+	password := &cobra.Command{
+		Use:   "password",
+		Short: "生成密码",
+		Run: func(cmd *cobra.Command, args []string) {
+			system.Password()
+		},
+	}
+
+	cmd.AddCommand(server)
+	cmd.AddCommand(root)
+	cmd.AddCommand(password)
+
+	_ = cmd.Execute()
 
 }
 
@@ -42,8 +58,6 @@ func initialize() {
 	config.InitConfig()
 
 	api.InitApi()
-
-	dir.InitDir()
 
 	logger.InitLogger()
 
@@ -54,7 +68,5 @@ func initialize() {
 	authorize.InitCasbin()
 
 	go crontab.InitCrontab()
-
-	go amqp.Init()
 
 }

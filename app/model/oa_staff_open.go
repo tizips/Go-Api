@@ -8,9 +8,9 @@ import (
 const TableOaStaffOpen = "oa_staff_open"
 
 type OaStaffOpen struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	MemberId  string
-	StaffId   uint
+	StaffId   int
 	Channel   string
 	Openid    string
 	Unionid   string

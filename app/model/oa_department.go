@@ -8,10 +8,10 @@ import (
 const TableOaDepartment = "oa_department"
 
 type OaDepartment struct {
-	Id        uint `gorm:"primary_key"`
-	ParentId  uint
+	Id        int `gorm:"primary_key"`
+	ParentId  int
 	Name      string
-	IsEnable  uint8
+	IsEnable  int8
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

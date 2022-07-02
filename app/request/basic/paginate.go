@@ -1,18 +1,18 @@
 package basic
 
 type Paginate struct {
-	Page uint `form:"page" json:"page" binding:"omitempty,number,gte=0"`
-	Size uint `form:"size" json:"size" binding:"omitempty,number,gte=0,lte=20"`
+	Page int `form:"page" json:"page" binding:"omitempty,number,gte=0" label:"页码"`
+	Size int `form:"size" json:"size" binding:"omitempty,number,gte=0,lte=20" label:"页数"`
 }
 
-func (p *Paginate) GetPage() uint {
+func (p *Paginate) GetPage() int {
 	if p.Page > 0 {
 		return p.Page
 	}
 	return 1
 }
 
-func (p *Paginate) GetSize() uint {
+func (p *Paginate) GetSize() int {
 	if p.Size > 0 {
 		return p.Size
 	}

@@ -1,7 +1,7 @@
 package model
 
 type SysCasbin struct {
-	Id    uint   `gorm:"primary_key"`
+	Id    int    `gorm:"primary_key"`
 	PType string `gorm:"column:ptype"`
 	V0    string
 	V1    string

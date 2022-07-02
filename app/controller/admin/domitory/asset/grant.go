@@ -41,7 +41,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 
 	var typeBed model.DorTypeBed
-	var buildingIds, floorIds, roomIds, bedIds []uint
+	var buildingIds, floorIds, roomIds, bedIds []int
 
 	if request.Type > 0 {
 		data.Database.Find(&typeBed, request.Type)
@@ -107,9 +107,9 @@ func DoGrantByCreate(ctx *gin.Context) {
 	var positions []model.DorGrantPosition
 	var details []model.DorGrantDetail
 
-	var isNoPublicBuildingIds []uint
-	var isNoPublicFloorIds []uint
-	var isNoPublicRoomIds []uint
+	var isNoPublicBuildingIds []int
+	var isNoPublicFloorIds []int
+	var isNoPublicRoomIds []int
 
 	if request.Type > 0 {
 		positions = append(positions, model.DorGrantPosition{
@@ -328,17 +328,17 @@ func DoGrantByCreate(ctx *gin.Context) {
 					GrantId:    grant.Id,
 					PackageId:  grant.PackageId,
 					PositionId: 0,
-					TypeId:     uint(item["type_id"].(uint32)),
-					BuildingId: uint(item["building_id"].(uint32)),
-					FloorId:    uint(item["floor_id"].(uint32)),
-					RoomId:     uint(item["room_id"].(uint32)),
-					BedId:      uint(item["id"].(uint32)),
+					TypeId:     int(item["type_id"].(int32)),
+					BuildingId: int(item["building_id"].(int32)),
+					FloorId:    int(item["floor_id"].(int32)),
+					RoomId:     int(item["room_id"].(int32)),
+					BedId:      int(item["id"].(int32)),
 					DeviceId:   value.DeviceId,
 					Number:     value.Number,
-					IsPublic:   item["is_public"].(uint8),
+					IsPublic:   item["is_public"].(int8),
 				}
 				if item["people_id"] != nil {
-					items.PeopleId = uint(item["people_id"].(uint32))
+					items.PeopleId = int(item["people_id"].(int32))
 				}
 				if item["member_id"] != nil {
 					items.MemberId = item["member_id"].(string)

@@ -1,15 +1,15 @@
 package architecture
 
 type ToModuleByList struct {
-	Id        uint   `json:"id"`
+	Id        int    `json:"id"`
 	Slug      string `json:"slug"`
 	Name      string `json:"name"`
-	IsEnable  uint8  `json:"is_enable"`
-	Order     uint   `json:"order"`
+	IsEnable  int8   `json:"is_enable"`
+	Order     int    `json:"order"`
 	CreatedAt string `json:"created_at"`
 }
 
 type ToModuleByOnline struct {
-	Id   uint   `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }

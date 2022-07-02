@@ -8,16 +8,16 @@ import (
 const TableDorDevice = "dor_device"
 
 type DorDevice struct {
-	Id            uint `gorm:"primary_key"`
-	CategoryId    uint
+	Id            int `gorm:"primary_key"`
+	CategoryId    int
 	No            string
 	Name          string
 	Specification string
-	Price         uint
+	Price         int
 	Unit          string
-	Indemnity     uint
-	StockTotal    uint
-	StockUsed     uint
+	Indemnity     int
+	StockTotal    int
+	StockUsed     int
 	Remark        string
 	CreatedAt     carbon.DateTime
 	UpdatedAt     carbon.DateTime

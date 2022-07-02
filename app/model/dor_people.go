@@ -7,19 +7,19 @@ import (
 const TableDorPeople = "dor_people"
 
 type DorPeople struct {
-	Id         uint `gorm:"primary_key"`
-	CategoryId uint
-	BuildingId uint
-	FloorId    uint
-	RoomId     uint
-	BedId      uint
-	TypeId     uint
+	Id         int `gorm:"primary_key"`
+	CategoryId int
+	BuildingId int
+	FloorId    int
+	RoomId     int
+	BedId      int
+	TypeId     int
 	MemberId   string
-	MasterId   uint
+	MasterId   int
 	Start      carbon.Date  `gorm:"default:null"`
 	End        *carbon.Date `gorm:"default:null"`
 	Remark     string
-	IsTemp     uint8
+	IsTemp     int8
 	Status     string
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime

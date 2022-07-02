@@ -8,15 +8,15 @@ import (
 const TableDorGrantPosition = "dor_grant_device"
 
 type DorGrantPosition struct {
-	Id         uint `gorm:"primary_key"`
-	GrantId    uint
+	Id         int `gorm:"primary_key"`
+	GrantId    int
 	Object     string
-	TypeId     uint
-	TypeBedId  uint
-	BuildingId uint
-	FloorId    uint
-	RoomId     uint
-	BedId      uint
+	TypeId     int
+	TypeBedId  int
+	BuildingId int
+	FloorId    int
+	RoomId     int
+	BedId      int
 	CreatedAt  carbon.DateTime
 	UpdatedAt  carbon.DateTime
 	DeletedAt  gorm.DeletedAt

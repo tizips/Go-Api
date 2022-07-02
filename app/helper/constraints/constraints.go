@@ -21,5 +21,5 @@ type Signed interface {
 }
 
 type Unsigned interface {
-	~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr
+	~int | ~int8 | ~int16 | ~int32 | ~int64
 }

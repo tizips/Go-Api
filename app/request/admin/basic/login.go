@@ -1,6 +1,6 @@
 package basic
 
 type DoLoginByAccess struct {
-	Username string `form:"username" json:"username" binding:"required,min=4,max=20"`
-	Password string `form:"password" json:"password" binding:"required,min=4,max=20"`
+	Username string `form:"username" json:"username" binding:"required,username" label:"用户名"`
+	Password string `form:"password" json:"password" binding:"required,password" label:"密码"`
 }

@@ -1,8 +1,8 @@
 package auth
 
 type TreePermission struct {
-	Id        uint             `json:"id"`
-	Parents   []uint           `json:"parents,omitempty"`
+	Id        int              `json:"id"`
+	Parents   []int            `json:"parents,omitempty"`
 	Name      string           `json:"name,omitempty"`
 	Slug      string           `json:"slug,omitempty"`
 	Method    string           `json:"method,omitempty"`

@@ -1,22 +1,22 @@
 package asset
 
 type ToDeviceByPaginate struct {
-	Id            uint   `json:"id"`
+	Id            int    `json:"id"`
 	Category      string `json:"category"`
-	CategoryId    uint   `json:"category_id"`
+	CategoryId    int    `json:"category_id"`
 	Name          string `json:"name"`
 	No            string `json:"no"`
 	Specification string `json:"specification"`
-	Price         uint   `json:"price"`
+	Price         int    `json:"price"`
 	Unit          string `json:"unit"`
-	Indemnity     uint   `json:"indemnity"`
-	StockTotal    uint   `json:"stock_total"`
-	StockUsed     uint   `json:"stock_used"`
+	Indemnity     int    `json:"indemnity"`
+	StockTotal    int    `json:"stock_total"`
+	StockUsed     int    `json:"stock_used"`
 	Remark        string `json:"remark"`
 	CreatedAt     string `json:"created_at"`
 }
 
 type ToDeviceByOnline struct {
-	Id   uint   `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }

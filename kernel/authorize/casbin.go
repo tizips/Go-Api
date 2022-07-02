@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/casbin/casbin/v2"
 	adapter "github.com/casbin/gorm-adapter/v3"
+	"github.com/gookit/color"
 	"saas/kernel/config"
 	"saas/kernel/data"
 )
@@ -16,13 +17,13 @@ func InitCasbin() {
 
 	a, err := adapter.NewAdapterByDBUseTableName(data.Database, config.Values.Database.Prefix, "sys_casbin")
 	if err != nil {
-		fmt.Printf("Casbin new adapter error:%v", err)
+		color.Errorf("Casbin new adapter error: %v", err)
 		return
 	}
 
 	Casbin, err = casbin.NewEnforcer(config.Application.Path+"/conf/casbin.conf", a)
 	if err != nil {
-		fmt.Printf("Casbin new enforcer error:%v", err)
+		color.Errorf("Casbin new enforcer error: %v", err)
 		return
 	}
 

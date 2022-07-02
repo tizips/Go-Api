@@ -8,7 +8,7 @@ type ToAccountByInformation struct {
 }
 
 type ToAccountByModule struct {
-	Id   uint   `json:"id"`
+	Id   int    `json:"id"`
 	Slug string `json:"slug"`
 	Name string `json:"name"`
 }

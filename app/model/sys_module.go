@@ -8,11 +8,11 @@ import (
 const TableSysModule = "sys_module"
 
 type SysModule struct {
-	Id        uint `gorm:"primary_key"`
+	Id        int `gorm:"primary_key"`
 	Slug      string
 	Name      string
-	IsEnable  uint8
-	Order     uint
+	IsEnable  int8
+	Order     int
 	CreatedAt carbon.DateTime
 	UpdatedAt carbon.DateTime
 	DeletedAt gorm.DeletedAt

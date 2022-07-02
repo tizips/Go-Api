@@ -29,7 +29,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 		return
 	}
 
-	var parent1, parent2 uint
+	var parent1, parent2 int
 
 	var parent model.SysPermission
 
@@ -118,7 +118,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	var parent1, parent2 uint
+	var parent1, parent2 int
 
 	var parent model.SysPermission
 

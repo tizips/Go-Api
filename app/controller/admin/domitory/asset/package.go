@@ -18,7 +18,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 		return
 	}
 
-	var deviceIds = make([]uint, len(request.Devices))
+	var deviceIds = make([]int, len(request.Devices))
 
 	for idx, item := range request.Devices {
 		deviceIds[idx] = item.Device
@@ -98,7 +98,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var deviceIds = make([]uint, len(request.Devices))
+	var deviceIds = make([]int, len(request.Devices))
 
 	for idx, item := range request.Devices {
 		deviceIds[idx] = item.Device
@@ -146,7 +146,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	var deletes []uint
+	var deletes []int
 	for _, item := range pack.Details {
 		mark := true
 		for _, value := range request.Devices {

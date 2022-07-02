@@ -1,7 +1,7 @@
 package stay
 
 type ToPeopleByPaginate struct {
-	Id            uint     `json:"id"`
+	Id            int      `json:"id"`
 	Category      string   `json:"category"`
 	Building      string   `json:"building"`
 	Floor         string   `json:"floor"`
@@ -14,7 +14,7 @@ type ToPeopleByPaginate struct {
 	Departments   []string `json:"departments,omitempty"`
 	Manager       any      `json:"manager,omitempty"`
 	Certification any      `json:"certification,omitempty"`
-	IsTemp        uint8    `json:"is_temp"`
+	IsTemp        int8     `json:"is_temp"`
 	Start         string   `json:"start"`
 	End           string   `json:"end,omitempty"`
 	Remark        string   `json:"remark,omitempty"`

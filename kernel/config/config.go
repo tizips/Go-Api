@@ -18,8 +18,6 @@ var Values struct {
 	Database configs.Database
 	Redis    configs.Redis
 	Jwt      configs.Jwt
-	Cache    configs.Cache
-	File     configs.File
 	Qiniu    configs.Qiniu
 	Amqp     configs.Amqp
 }

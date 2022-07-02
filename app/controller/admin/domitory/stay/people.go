@@ -215,7 +215,7 @@ func DoPeopleByCreate(ctx *gin.Context) {
 		return
 	}
 
-	var masterId uint = 0
+	var masterId int = 0
 	masterName := member.Name
 
 	var master model.DorPeople

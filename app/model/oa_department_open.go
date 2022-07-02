@@ -8,8 +8,8 @@ import (
 const TableOaDepartmentOpen = "oa_department_open"
 
 type OaDepartmentOpen struct {
-	Id           uint `gorm:"primary_key"`
-	DepartmentId uint
+	Id           int `gorm:"primary_key"`
+	DepartmentId int
 	Channel      string
 	Openid       string
 	CreatedAt    carbon.DateTime
