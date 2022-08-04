@@ -1,4 +1,4 @@
-package auth
+package management
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
 	"saas/app/model"
-	"saas/app/request/admin/site/auth"
-	authResponse "saas/app/response/admin/site/auth"
+	"saas/app/request/admin/site/management"
+	authResponse "saas/app/response/admin/site/management"
 	"saas/kernel/authorize"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -16,7 +16,7 @@ import (
 
 func DoAdminByCreate(ctx *gin.Context) {
 
-	var request auth.DoAdminByCreate
+	var request management.DoAdminByCreate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -108,7 +108,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var request auth.DoAdminByUpdate
+	var request management.DoAdminByUpdate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -248,7 +248,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 func ToAdminByPaginate(ctx *gin.Context) {
 
-	var request auth.ToAdminByPaginate
+	var request management.ToAdminByPaginate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -358,7 +358,7 @@ func DoAdminByDelete(ctx *gin.Context) {
 
 func DoAdminByEnable(ctx *gin.Context) {
 
-	var request auth.DoAdminByEnable
+	var request management.DoAdminByEnable
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return

@@ -1,4 +1,4 @@
-package auth
+package management
 
 type ToAdminByPaginate struct {
 	Id       int    `json:"id"`

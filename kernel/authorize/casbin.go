@@ -9,7 +9,7 @@ import (
 	"saas/kernel/data"
 )
 
-const ROOT = 888
+const ROOT = 666
 
 var Casbin *casbin.Enforcer
 

@@ -35,9 +35,9 @@ func Omits() []Api {
 		{Method: http.MethodPost, Path: "/admin/account/logout"},
 
 		{Method: http.MethodGet, Path: "/admin/site/helper/apis"},
-		{Method: http.MethodGet, Path: "/admin/site/auth/permission/parents"},
-		{Method: http.MethodGet, Path: "/admin/site/auth/permission/self"},
-		{Method: http.MethodGet, Path: "/admin/site/auth/role/enable"},
+		{Method: http.MethodGet, Path: "/admin/site/management/permission/parents"},
+		{Method: http.MethodGet, Path: "/admin/site/management/permission/self"},
+		{Method: http.MethodGet, Path: "/admin/site/management/role/enable"},
 		{Method: http.MethodGet, Path: "/admin/site/architecture/module/online"},
 
 		{Method: http.MethodGet, Path: "/admin/dormitory/basic/type/online"},

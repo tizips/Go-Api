@@ -1,4 +1,4 @@
-package auth
+package management
 
 import "saas/app/request/basic"
 

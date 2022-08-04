@@ -1,4 +1,4 @@
-package auth
+package management
 
 type ToRoleByPaginate struct {
 	Id          int     `json:"id"`

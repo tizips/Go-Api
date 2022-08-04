@@ -1,4 +1,4 @@
-package auth
+package management
 
 type TreePermission struct {
 	Id        int              `json:"id"`

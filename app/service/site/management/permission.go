@@ -1,12 +1,12 @@
-package auth
+package management
 
 import (
 	"saas/app/model"
-	"saas/app/response/admin/site/auth"
+	"saas/app/response/admin/site/management"
 	"saas/kernel/data"
 )
 
-func TreePermission(module int, parent bool, simple bool) []auth.TreePermission {
+func TreePermission(module int, parent bool, simple bool) []management.TreePermission {
 
 	tx := data.Database
 
@@ -28,9 +28,9 @@ func TreePermission(module int, parent bool, simple bool) []auth.TreePermission 
 	return HandlerTree(permissions, parent, simple)
 }
 
-func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []auth.TreePermission {
+func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []management.TreePermission {
 
-	var responses []auth.TreePermission
+	var responses []management.TreePermission
 
 	if len(permissions) > 0 {
 
@@ -42,7 +42,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 			} else if item.ParentI1 > 0 {
 				children1 = append(children1, item)
 			} else {
-				temp := auth.TreePermission{
+				temp := management.TreePermission{
 					Id:        item.Id,
 					Name:      item.Name,
 					Slug:      item.Slug,
@@ -64,7 +64,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 		for index, item := range responses {
 			for _, value := range children1 {
 				if item.Id == value.ParentI1 {
-					childrenI1 := auth.TreePermission{
+					childrenI1 := management.TreePermission{
 						Id:        value.Id,
 						Parents:   []int{value.ParentI1},
 						Name:      value.Name,
@@ -77,7 +77,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 					if !parent {
 						for _, val := range children2 {
 							if childrenI1.Id == val.ParentI2 {
-								childrenI2 := auth.TreePermission{
+								childrenI2 := management.TreePermission{
 									Id:        val.Id,
 									Parents:   []int{val.ParentI1, val.ParentI2},
 									Name:      val.Name,

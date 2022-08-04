@@ -1,13 +1,13 @@
-package auth
+package management
 
 import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"saas/app/constant"
 	"saas/app/model"
-	"saas/app/request/admin/site/auth"
-	authResponse "saas/app/response/admin/site/auth"
-	authService "saas/app/service/site/auth"
+	"saas/app/request/admin/site/management"
+	authResponse "saas/app/response/admin/site/management"
+	authService "saas/app/service/site/management"
 	"saas/kernel/authorize"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -16,7 +16,7 @@ import (
 
 func DoPermissionByCreate(ctx *gin.Context) {
 
-	var request auth.DoPermissionByCreate
+	var request management.DoPermissionByCreate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -93,7 +93,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var request auth.DoPermissionByUpdate
+	var request management.DoPermissionByUpdate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -278,7 +278,7 @@ func DoPermissionByDelete(ctx *gin.Context) {
 
 func ToPermissionByTree(ctx *gin.Context) {
 
-	var request auth.ToPermissionByTree
+	var request management.ToPermissionByTree
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -296,7 +296,7 @@ func ToPermissionByTree(ctx *gin.Context) {
 
 func ToPermissionByParents(ctx *gin.Context) {
 
-	var request auth.ToPermissionByTree
+	var request management.ToPermissionByTree
 	if err := ctx.ShouldBind(&request); err != nil {
 		ctx.JSON(http.StatusOK, response.Responses{
 			Code:    40000,

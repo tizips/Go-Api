@@ -1,10 +1,10 @@
-package auth
+package management
 
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/model"
-	"saas/app/request/admin/site/auth"
-	authResponse "saas/app/response/admin/site/auth"
+	"saas/app/request/admin/site/management"
+	authResponse "saas/app/response/admin/site/management"
 	"saas/kernel/authorize"
 	"saas/kernel/data"
 	"saas/kernel/response"
@@ -13,7 +13,7 @@ import (
 
 func DoRoleByCreate(ctx *gin.Context) {
 
-	var request auth.DoRoleByCreate
+	var request management.DoRoleByCreate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -147,7 +147,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var request auth.DoRoleByUpdate
+	var request management.DoRoleByUpdate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -389,7 +389,7 @@ func DoRoleByDelete(ctx *gin.Context) {
 
 func ToRoleByPaginate(ctx *gin.Context) {
 
-	var request auth.ToRoleByPaginate
+	var request management.ToRoleByPaginate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
