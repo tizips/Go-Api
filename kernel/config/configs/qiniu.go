@@ -5,4 +5,5 @@ type Qiniu struct {
 	Secret string
 	Bucket string
 	Domain string
+	Prefix string
 }
