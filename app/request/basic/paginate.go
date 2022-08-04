@@ -20,9 +20,9 @@ func (p *Paginate) GetSize() int {
 }
 
 func (p *Paginate) GetLimit() int {
-	return int(p.GetSize())
+	return p.GetSize()
 }
 
 func (p *Paginate) GetOffset() int {
-	return int((p.GetPage() - 1) * p.GetSize())
+	return (p.GetPage() - 1) * p.GetSize()
 }

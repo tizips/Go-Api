@@ -327,7 +327,7 @@ func DoAdminByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if authorize.Id(ctx) == int(id) {
+	if authorize.Id(ctx) == id {
 		response.Fail(ctx, "无法删除自身账号")
 		return
 	}
