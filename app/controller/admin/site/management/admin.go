@@ -192,8 +192,18 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	if request.IsEnable == constant.IsEnableYes { //	用户禁用，删除缓存角色
+	if request.IsEnable != constant.IsEnableYes { //	用户禁用，删除缓存角色
 		if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
+			tx.Rollback()
+			response.Fail(ctx, "修改失败")
+			return
+		}
+	} else {
+		var items = make([]string, len(request.Roles))
+		for idx, item := range request.Roles {
+			items[idx] = authorize.NameByRole(item)
+		}
+		if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "修改失败")
 			return
