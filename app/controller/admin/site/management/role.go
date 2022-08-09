@@ -229,7 +229,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	var creates []model.SysRoleBindPermission
 	var deletes []int
 
-	if len(role.BindPermissions) > 0 {
+	if len(bind) > 0 {
 		for _, item := range bind {
 			mark := true
 			for _, value := range role.BindPermissions {
