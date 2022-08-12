@@ -2,9 +2,8 @@ package helper
 
 import (
 	"bufio"
-	"github.com/bwmarrin/snowflake"
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/gookit/goutil/dump"
 	"github.com/qiniu/go-sdk/v7/auth/qbox"
 	"github.com/qiniu/go-sdk/v7/storage"
 	"mime/multipart"
@@ -12,19 +11,25 @@ import (
 	"path"
 	"saas/kernel/config"
 	"saas/kernel/config/configs"
+	"saas/kernel/data"
+	"saas/kernel/snowflake"
 	"strings"
+	"time"
 )
 
-func DoUploadBySimple(ctx *gin.Context, dirs string, file *multipart.FileHeader) (error, *UploadBySimple) {
+func DoUploadBySimple(ctx *gin.Context, dirs string, file *multipart.FileHeader) (upload *UploadBySimple, err error) {
 
-	if config.Values.Server.File == configs.ServerFileQiniu {
-		return doUploadBySimpleWithQiniu(ctx, dirs, file)
+	switch config.Values.File.Driver {
+	case configs.FileDriverQiniu:
+		upload, err = doUploadBySimpleWithQiniu(ctx, dirs, file)
+	default:
+		upload, err = doUploadBySimpleWithSystem(ctx, dirs, file)
 	}
 
-	return doUploadBySimpleWithSystem(ctx, dirs, file)
+	return upload, err
 }
 
-func doUploadBySimpleWithSystem(ctx *gin.Context, dirs string, file *multipart.FileHeader) (error, *UploadBySimple) {
+func doUploadBySimpleWithSystem(ctx *gin.Context, dirs string, file *multipart.FileHeader) (*UploadBySimple, error) {
 
 	filepath := "/upload"
 
@@ -35,88 +40,78 @@ func doUploadBySimpleWithSystem(ctx *gin.Context, dirs string, file *multipart.F
 	filepath += dirs
 
 	if err := os.MkdirAll(config.Application.Runtime+filepath, 0750); err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	node, err := snowflake.NewNode(config.Values.Server.Node)
-	if err != nil {
-		return err, nil
-	}
-
-	generate := node.Generate()
-
-	filename := generate.String() + path.Ext(file.Filename)
+	filename := snowflake.Snowflake.Generate().String() + path.Ext(file.Filename)
 
 	filepath += "/" + filename
 
-	err = ctx.SaveUploadedFile(file, config.Application.Runtime+filepath)
-	if err != nil {
-		return err, nil
+	if err := ctx.SaveUploadedFile(file, config.Application.Runtime+filepath); err != nil {
+		return nil, err
 	}
 
-	return nil, &UploadBySimple{
+	return &UploadBySimple{
 		Name: filename,
 		Path: filepath,
 		Url:  config.Values.Server.Url + filepath,
-	}
+	}, nil
 }
 
-func doUploadBySimpleWithQiniu(ctx *gin.Context, dirs string, file *multipart.FileHeader) (error, *UploadBySimple) {
+func doUploadBySimpleWithQiniu(ctx *gin.Context, dirs string, file *multipart.FileHeader) (*UploadBySimple, error) {
 
-	policy := storage.PutPolicy{
-		Scope: config.Values.Qiniu.Bucket,
+	redis := fmt.Sprintf("%s:qiniu:%s", config.Values.Server.Name, config.Values.File.QiniuAccess)
+
+	token, _ := data.Redis.Get(ctx, redis).Result()
+
+	if token == "" {
+
+		policy := storage.PutPolicy{
+			Scope:   config.Values.File.QiniuBucket,
+			Expires: 7200,
+		}
+
+		mac := qbox.NewMac(config.Values.File.QiniuAccess, config.Values.File.QiniuSecret)
+
+		token = policy.UploadToken(mac)
+
+		if token != "" {
+			data.Redis.Set(ctx, redis, token, time.Duration(policy.Expires)*time.Second)
+		}
+
 	}
 
-	mac := qbox.NewMac(config.Values.Qiniu.Access, config.Values.Qiniu.Secret)
+	filename := snowflake.Snowflake.Generate().String() + path.Ext(file.Filename)
 
-	token := policy.UploadToken(mac)
+	key := dirs + "/" + filename
 
-	dump.P(token)
+	if config.Values.File.QiniuPrefix != "" {
+		key = "/" + config.Values.File.QiniuPrefix + key
+	}
+
+	if strings.HasPrefix(key, "/") {
+		key = string([]rune(key)[1:])
+	}
 
 	resume := storage.NewFormUploader(nil)
 
-	extra := storage.PutExtra{
-		Params: map[string]string{
-			"fileName": "",
-		},
-	}
-
 	f, err := file.Open()
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	var ret any
+	var ret storage.PutRet
 
-	err = resume.PutWithoutKey(ctx, &ret, token, bufio.NewReader(f), file.Size, &extra)
+	err = resume.Put(ctx, &ret, token, key, bufio.NewReader(f), file.Size, nil)
 	if err != nil {
-		dump.P(err)
-		return err, nil
+		return nil, err
 	}
 
-	dump.P(ret)
-
-	//node, err := snowflake.NewNode(config.Values.Server.Node)
-	//if err != nil {
-	//	return err, nil
-	//}
-	//
-	//generate := node.Generate()
-	//
-	//filename := generate.String() + path.Ext(file.Filename)
-	//
-	//filepath += "/" + filename
-	//
-	//err = ctx.SaveUploadedFile(file, config.Application.Runtime+filepath)
-	//if err != nil {
-	return nil, nil
-	//}
-	//
-	//return nil, &UploadBySimple{
-	//	Name: filename,
-	//	Path: filepath,
-	//	Url:  config.Values.Server.Url + filepath,
-	//}
+	return &UploadBySimple{
+		Name: filename,
+		Path: "/" + key,
+		Url:  config.Values.File.QiniuDomain + "/" + key,
+	}, nil
 }
 
 type UploadBySimple struct {

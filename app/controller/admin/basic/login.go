@@ -44,12 +44,12 @@ func DoLoginByAccount(ctx *gin.Context) {
 	now := carbon.Now()
 
 	claims := jwt.RegisteredClaims{
-		Issuer:    "admin",
-		ID:        strconv.Itoa(SysAdmin.Id),
+		Issuer:    constant.ContextAdmin,
+		Subject:   strconv.Itoa(SysAdmin.Id),
 		NotBefore: jwt.NewNumericDate(now.Carbon2Time()),
 		IssuedAt:  jwt.NewNumericDate(now.Carbon2Time()),
 		ExpiresAt: jwt.NewNumericDate(now.AddHours(config.Values.Jwt.Lifetime).Carbon2Time()),
-		Subject:   helperService.JwtToken(SysAdmin.Id),
+		ID:        helperService.JwtToken(SysAdmin.Id),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -75,7 +75,7 @@ func DoLogout(ctx *gin.Context) {
 
 	claims := authorize.Jwt(ctx)
 
-	ok := basic.BlackJwt(ctx, "admin", *claims)
+	ok := basic.BlackJwt(ctx, constant.ContextAdmin, *claims)
 
 	if !ok {
 		basicResponse.Fail(ctx, "退出失败，请稍后重试！")

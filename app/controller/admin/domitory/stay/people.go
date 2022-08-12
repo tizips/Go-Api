@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bsm/redislock"
-	"github.com/bwmarrin/snowflake"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-module/carbon/v2"
 	"gorm.io/gorm"
@@ -13,9 +12,9 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/stay"
 	stayResponse "saas/app/response/admin/dormitory/stay"
-	"saas/kernel/config"
 	"saas/kernel/data"
 	"saas/kernel/response"
+	"saas/kernel/snowflake"
 	"time"
 )
 
@@ -169,14 +168,8 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 		defer lock.Release(ctx)
 
-		node, err := snowflake.NewNode(config.Values.Server.Node)
-		if err != nil {
-			response.Fail(ctx, "办理失败")
-			return
-		}
-
 		member = model.MemMember{
-			Id:       node.Generate().String(),
+			Id:       snowflake.Snowflake.Generate().String(),
 			Mobile:   request.Mobile,
 			Name:     request.Name,
 			Nickname: request.Name,

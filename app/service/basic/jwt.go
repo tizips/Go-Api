@@ -11,7 +11,7 @@ import (
 
 func CheckJwt(ctx context.Context, channel string, claims jwt.RegisteredClaims) bool {
 
-	result, _ := data.Redis.Exists(ctx, Blacklist(channel, "login", claims.Subject)).Result()
+	result, _ := data.Redis.Exists(ctx, Blacklist(channel, "login", claims.ID)).Result()
 
 	return result != 1
 }
@@ -22,7 +22,7 @@ func BlackJwt(ctx context.Context, channel string, claims jwt.RegisteredClaims) 
 
 	expires := time.Duration(claims.ExpiresAt.Unix()+12*60*60-now.Timestamp()) * time.Second
 
-	_, err := data.Redis.Set(ctx, Blacklist(channel, "login", claims.Subject), now.ToDateTimeString(), expires).Result()
+	_, err := data.Redis.Set(ctx, Blacklist(channel, "login", claims.ID), now.ToDateTimeString(), expires).Result()
 
 	if err != nil {
 		return false

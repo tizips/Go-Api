@@ -8,6 +8,7 @@ import (
 	"saas/kernel/config"
 	"saas/kernel/data"
 	"saas/kernel/logger"
+	"saas/kernel/snowflake"
 	"saas/kernel/system"
 )
 
@@ -66,6 +67,8 @@ func initialize() {
 	data.InitRedis()
 
 	authorize.InitCasbin()
+
+	_ = snowflake.InitSnowflake()
 
 	go crontab.InitCrontab()
 

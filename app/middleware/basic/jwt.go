@@ -18,11 +18,13 @@ func JwtParseMiddleware() gin.HandlerFunc {
 
 			var claims jwt.RegisteredClaims
 
-			token, _ := jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
+			_, err := jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
 				return []byte(config.Values.Jwt.Secret), nil
 			})
 
-			if token.Valid && claims.ID != "" {
+			valid, _ := err.(*jwt.ValidationError)
+
+			if (err == nil || valid.Errors > 0 && valid.Is(jwt.ErrTokenExpired)) && claims.Subject != "" {
 				now := carbon.Now()
 				if ok := claims.VerifyNotBefore(now.Carbon2Time(), false); ok {
 					if ok = claims.VerifyExpiresAt(now.Carbon2Time(), true); ok { //	生效的授权令牌操作
@@ -39,25 +41,25 @@ func JwtParseMiddleware() gin.HandlerFunc {
 }
 
 func set(ctx *gin.Context, claims jwt.RegisteredClaims) {
-	ctx.Set(constant.ContextID, claims.ID)
+	ctx.Set(constant.ContextID, claims.Subject)
 	ctx.Set(constant.ContextJWT, claims)
 }
 
 func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
-	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist("admin", "refresh", claims.Subject)).Result()
+	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist("admin", "refresh", claims.ID)).Result()
 
 	now := carbon.Now()
 
 	if len(cache) <= 0 {
 
 		expires := claims.ExpiresAt
-		subject := claims.Subject
+		id := claims.ID
 
 		claims.NotBefore = jwt.NewNumericDate(now.Carbon2Time())
 		claims.IssuedAt = jwt.NewNumericDate(now.Carbon2Time())
 		claims.ExpiresAt = jwt.NewNumericDate(now.AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
-		claims.Subject = helper.JwtToken(claims.ID)
+		claims.ID = helper.JwtToken(claims.Subject)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -67,8 +69,8 @@ func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
 			ctx.Header(constant.JwtAuthorization, signed)
 
-			if affected, err := data.Redis.HSet(ctx, basic.Blacklist("admin", "refresh", subject), "token", signed, "created_at", now.ToDateTimeString()).Result(); err == nil && affected > 0 {
-				data.Redis.ExpireAt(ctx, basic.Blacklist("admin", "refresh", subject), carbon.Time2Carbon(expires.Time).AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
+			if affected, err := data.Redis.HSet(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), "token", signed, "created_at", now.ToDateTimeString()).Result(); err == nil && affected > 0 {
+				data.Redis.ExpireAt(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), carbon.Time2Carbon(expires.Time).AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
 			}
 		}
 

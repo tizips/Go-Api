@@ -18,7 +18,7 @@ var Values struct {
 	Database configs.Database
 	Redis    configs.Redis
 	Jwt      configs.Jwt
-	Qiniu    configs.Qiniu
+	File     configs.File
 	Amqp     configs.Amqp
 }
 
