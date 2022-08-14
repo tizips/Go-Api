@@ -23,3 +23,9 @@ type DoPeopleByCreate struct {
 	End      string `form:"end" json:"end" binding:"omitempty,datetime,gtfield=Start" label:"预离日期"`
 	Remark   string `form:"remark" json:"remark" binding:"omitempty,max=255" label:"备注"`
 }
+
+type DoPeopleByLeave struct {
+	Id     int    `json:"id" form:"id" binding:"required,gt=0"`
+	Notify string `json:"notify" form:"notify" binding:"omitempty,max=255"`
+	Remark string `json:"remark" form:"remark" binding:"required,max=255" label:"备注"`
+}

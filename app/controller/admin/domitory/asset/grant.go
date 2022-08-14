@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-module/carbon/v2"
-	"github.com/gookit/goutil/dump"
 	"gorm.io/gorm"
 	"net/http"
-	"saas/app/helper/collection"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
@@ -40,16 +38,40 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 	}
 
-	var typeBed model.DorTypeBed
-	var buildingIds, floorIds, roomIds, bedIds []int
+	var typeBeds []model.DorTypeBed
+	var typeBedIds, buildingIds, floorIds, roomIds, bedIds []int
 
-	if request.Type > 0 {
-		data.Database.Find(&typeBed, request.Type)
-		if typeBed.Id <= 0 {
-			response.NotFound(ctx, "房型位置不存在")
+	if len(request.Types) > 0 {
+
+		var typeIds, ids []int
+
+		for _, item := range request.Types {
+			if item.Object == "type" {
+				typeIds = append(typeIds, item.Id)
+			} else if item.Object == "bed" {
+				ids = append(ids, item.Id)
+			}
+		}
+
+		tx := data.Database
+		if len(typeIds) > 0 {
+			tx = tx.Where("`type_id` in (?)", typeIds)
+		}
+		if len(ids) > 0 {
+			tx = tx.Or("id IN (?)", ids)
+		}
+		data.Database.Where(tx).Find(&typeBeds)
+
+		if len(typeBeds) <= 0 {
+			response.NotFound(ctx, "未找到房型相关信息")
 			return
 		}
-	} else {
+
+		for _, item := range typeBeds {
+			typeBedIds = append(typeBedIds, item.Id)
+		}
+
+	} else if len(request.Positions) > 0 {
 		for _, item := range request.Positions {
 			if item.Object == "bed" {
 				bedIds = append(bedIds, item.Id)
@@ -62,9 +84,6 @@ func DoGrantByCreate(ctx *gin.Context) {
 			}
 		}
 	}
-
-	dump.P(request)
-	dump.P(buildingIds)
 
 	tx := data.Database.Begin()
 
@@ -83,6 +102,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorGrantDevice
+
 	if pack.Id > 0 {
 		for _, item := range pack.Details {
 			devices = append(devices, model.DorGrantDevice{
@@ -111,159 +131,181 @@ func DoGrantByCreate(ctx *gin.Context) {
 	var isNoPublicFloorIds []int
 	var isNoPublicRoomIds []int
 
-	if request.Type > 0 {
+	if request.Position == "live" {
+
 		positions = append(positions, model.DorGrantPosition{
-			GrantId:   grant.Id,
-			Object:    model.DorGrantPositionType,
-			TypeId:    typeBed.TypeId,
-			TypeBedId: typeBed.Id,
+			GrantId: grant.Id,
+			Object:  model.DorGrantPositionLive,
 		})
-	} else {
-		if len(buildingIds) > 0 {
-			var buildings []model.DorBuilding
-			handleBuildingIds := collection.Unique(buildingIds)
-			if len(handleBuildingIds) != len(buildingIds) {
-				response.Fail(ctx, "楼栋选择重复")
-				return
-			}
-			data.Database.Find(&buildings, buildingIds)
-			if len(buildings) <= 0 {
-				response.NotFound(ctx, "楼栋未找到")
-				return
-			} else if len(buildings) != len(buildingIds) {
-				response.NotFound(ctx, "部分楼栋未找到")
-				return
-			}
-			for _, item := range buildings {
-				positions = append(positions, model.DorGrantPosition{
-					GrantId:    grant.Id,
-					Object:     model.DorGrantPositionBuilding,
-					BuildingId: item.Id,
-				})
-				if item.IsPublic != model.DorBuildingIsPublicYes {
-					isNoPublicBuildingIds = append(isNoPublicBuildingIds, item.Id)
-				} else {
-					for _, value := range devices {
-						details = append(details, model.DorGrantDetail{
-							GrantId:    grant.Id,
-							PackageId:  pack.Id,
-							TypeId:     typeBed.TypeId,
-							BuildingId: item.Id,
-							DeviceId:   value.DeviceId,
-							Number:     value.Number,
-							IsPublic:   model.DorBuildingIsPublicYes,
-						})
-					}
-				}
-			}
+
+		var peoples []model.DorPeople
+
+		now := carbon.Now()
+		data.Database.Where("`start`<=? and `status`=?", now.ToDateString(), model.DorPeopleStatusLive).Find(&peoples)
+
+		if len(peoples) <= 0 {
+			response.NotFound(ctx, "暂未找到入住人员")
+			return
 		}
-		if len(floorIds) > 0 {
-			var floors []model.DorFloor
-			handleFloorIds := collection.Unique(floorIds)
-			if len(handleFloorIds) != len(floorIds) {
-				response.Fail(ctx, "楼层选择重复")
-				return
-			}
-			data.Database.Find(&floors, floorIds)
-			if len(floors) <= 0 {
-				response.NotFound(ctx, "楼层未找到")
-				return
-			} else if len(floors) != len(floorIds) {
-				response.NotFound(ctx, "部分楼层未找到")
-				return
-			}
-			for _, item := range floors {
-				positions = append(positions, model.DorGrantPosition{
+
+		for _, item := range peoples {
+			if device.Id > 0 {
+				details = append(details, model.DorGrantDetail{
 					GrantId:    grant.Id,
-					Object:     model.DorGrantPositionFloor,
-					BuildingId: item.BuildingId,
-					FloorId:    item.Id,
-				})
-				if item.IsPublic != model.DorFloorIsPublicYes {
-					isNoPublicFloorIds = append(isNoPublicFloorIds, item.Id)
-				} else {
-					for _, value := range devices {
-						details = append(details, model.DorGrantDetail{
-							GrantId:    grant.Id,
-							PackageId:  pack.Id,
-							TypeId:     typeBed.TypeId,
-							BuildingId: item.BuildingId,
-							FloorId:    item.Id,
-							DeviceId:   value.DeviceId,
-							Number:     value.Number,
-							IsPublic:   model.DorBuildingIsPublicYes,
-						})
-					}
-				}
-			}
-		}
-		if len(roomIds) > 0 {
-			var rooms []model.DorRoom
-			handleRoomIds := collection.Unique(roomIds)
-			if len(handleRoomIds) != len(roomIds) {
-				response.Fail(ctx, "房间选择重复")
-				return
-			}
-			data.Database.Find(&rooms, roomIds)
-			if len(rooms) <= 0 {
-				response.NotFound(ctx, "房间未找到")
-				return
-			} else if len(rooms) != len(roomIds) {
-				response.NotFound(ctx, "部分房间未找到")
-				return
-			}
-			for _, item := range rooms {
-				positions = append(positions, model.DorGrantPosition{
-					GrantId:    grant.Id,
-					Object:     model.DorGrantPositionRoom,
-					BuildingId: item.BuildingId,
-					FloorId:    item.FloorId,
-					RoomId:     item.Id,
-				})
-				if item.IsPublic != model.DorRoomIsPublicYes {
-					isNoPublicRoomIds = append(isNoPublicRoomIds, item.Id)
-				} else {
-					for _, value := range devices {
-						details = append(details, model.DorGrantDetail{
-							GrantId:    grant.Id,
-							PackageId:  pack.Id,
-							TypeId:     typeBed.TypeId,
-							BuildingId: item.BuildingId,
-							FloorId:    item.FloorId,
-							RoomId:     item.Id,
-							DeviceId:   value.DeviceId,
-							Number:     value.Number,
-							IsPublic:   model.DorBuildingIsPublicYes,
-						})
-					}
-				}
-			}
-		}
-		if len(bedIds) > 0 {
-			var beds []model.DorBed
-			handleBedIds := collection.Unique(bedIds)
-			if len(handleBedIds) != len(bedIds) {
-				response.Fail(ctx, "床位选择重复")
-				return
-			}
-			data.Database.Find(&beds, bedIds)
-			if len(beds) <= 0 {
-				response.NotFound(ctx, "床位未找到")
-				return
-			} else if len(beds) != len(bedIds) {
-				response.NotFound(ctx, "部分床位未找到")
-				return
-			}
-			for _, item := range beds {
-				positions = append(positions, model.DorGrantPosition{
-					GrantId:    grant.Id,
-					Object:     model.DorGrantPositionBed,
+					PackageId:  pack.Id,
+					PositionId: positions[0].Id,
+					TypeId:     item.TypeId,
 					BuildingId: item.BuildingId,
 					FloorId:    item.FloorId,
 					RoomId:     item.RoomId,
-					BedId:      item.Id,
+					BedId:      item.BedId,
+					PeopleId:   item.Id,
+					MemberId:   item.MemberId,
+					DeviceId:   device.Id,
+					Number:     request.Number,
+					IsPublic:   model.DorBedIsPublicNo,
 				})
+			} else {
+				for _, value := range pack.Details {
+					details = append(details, model.DorGrantDetail{
+						GrantId:    grant.Id,
+						PackageId:  pack.Id,
+						PositionId: positions[0].Id,
+						TypeId:     item.TypeId,
+						BuildingId: item.BuildingId,
+						FloorId:    item.FloorId,
+						RoomId:     item.RoomId,
+						BedId:      item.BedId,
+						PeopleId:   item.Id,
+						MemberId:   item.MemberId,
+						DeviceId:   value.DeviceId,
+						Number:     request.Number,
+						IsPublic:   model.DorBedIsPublicNo,
+					})
+				}
 			}
+		}
+	}
+
+	if len(typeBeds) > 0 {
+		for _, item := range typeBeds {
+			positions = append(positions, model.DorGrantPosition{
+				GrantId:   grant.Id,
+				Object:    model.DorGrantPositionType,
+				TypeId:    item.TypeId,
+				TypeBedId: item.Id,
+			})
+		}
+	}
+	if len(buildingIds) > 0 {
+		var buildings []model.DorBuilding
+		data.Database.Find(&buildings, buildingIds)
+		if len(buildings) != len(buildingIds) {
+			response.NotFound(ctx, "部分楼栋未找到")
+			return
+		}
+		for _, item := range buildings {
+			positions = append(positions, model.DorGrantPosition{
+				GrantId:    grant.Id,
+				Object:     model.DorGrantPositionBuilding,
+				BuildingId: item.Id,
+			})
+			if item.IsPublic != model.DorBuildingIsPublicYes {
+				isNoPublicBuildingIds = append(isNoPublicBuildingIds, item.Id)
+			} else {
+				for _, value := range devices {
+					details = append(details, model.DorGrantDetail{
+						GrantId:    grant.Id,
+						PackageId:  pack.Id,
+						BuildingId: item.Id,
+						DeviceId:   value.DeviceId,
+						Number:     value.Number,
+						IsPublic:   model.DorBuildingIsPublicYes,
+					})
+				}
+			}
+		}
+	}
+	if len(floorIds) > 0 {
+		var floors []model.DorFloor
+		data.Database.Find(&floors, floorIds)
+		if len(floors) != len(floorIds) {
+			response.NotFound(ctx, "部分楼层未找到")
+			return
+		}
+		for _, item := range floors {
+			positions = append(positions, model.DorGrantPosition{
+				GrantId:    grant.Id,
+				Object:     model.DorGrantPositionFloor,
+				BuildingId: item.BuildingId,
+				FloorId:    item.Id,
+			})
+			if item.IsPublic != model.DorFloorIsPublicYes {
+				isNoPublicFloorIds = append(isNoPublicFloorIds, item.Id)
+			} else {
+				for _, value := range devices {
+					details = append(details, model.DorGrantDetail{
+						GrantId:    grant.Id,
+						PackageId:  pack.Id,
+						BuildingId: item.BuildingId,
+						FloorId:    item.Id,
+						DeviceId:   value.DeviceId,
+						Number:     value.Number,
+						IsPublic:   model.DorBuildingIsPublicYes,
+					})
+				}
+			}
+		}
+	}
+	if len(roomIds) > 0 {
+		var rooms []model.DorRoom
+		if len(rooms) != len(roomIds) {
+			response.NotFound(ctx, "部分房间未找到")
+			return
+		}
+		for _, item := range rooms {
+			positions = append(positions, model.DorGrantPosition{
+				GrantId:    grant.Id,
+				Object:     model.DorGrantPositionRoom,
+				BuildingId: item.BuildingId,
+				FloorId:    item.FloorId,
+				RoomId:     item.Id,
+			})
+			if item.IsPublic != model.DorRoomIsPublicYes {
+				isNoPublicRoomIds = append(isNoPublicRoomIds, item.Id)
+			} else {
+				for _, value := range devices {
+					details = append(details, model.DorGrantDetail{
+						GrantId:    grant.Id,
+						PackageId:  pack.Id,
+						TypeId:     item.TypeId,
+						BuildingId: item.BuildingId,
+						FloorId:    item.FloorId,
+						RoomId:     item.Id,
+						DeviceId:   value.DeviceId,
+						Number:     value.Number,
+						IsPublic:   model.DorBuildingIsPublicYes,
+					})
+				}
+			}
+		}
+	}
+	if len(bedIds) > 0 {
+		var beds []model.DorBed
+		data.Database.Find(&beds, bedIds)
+		if len(beds) != len(bedIds) {
+			response.NotFound(ctx, "部分床位未找到")
+			return
+		}
+		for _, item := range beds {
+			positions = append(positions, model.DorGrantPosition{
+				GrantId:    grant.Id,
+				Object:     model.DorGrantPositionBed,
+				BuildingId: item.BuildingId,
+				FloorId:    item.FloorId,
+				RoomId:     item.RoomId,
+				BedId:      item.Id,
+			})
 		}
 	}
 	if t := tx.Create(&positions); t.RowsAffected <= 0 {
@@ -272,7 +314,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 		return
 	}
 
-	if request.Type > 0 || len(isNoPublicBuildingIds) > 0 || len(isNoPublicFloorIds) > 0 || len(isNoPublicRoomIds) > 0 || len(bedIds) > 0 {
+	if len(typeBedIds) > 0 || len(isNoPublicBuildingIds) > 0 || len(isNoPublicFloorIds) > 0 || len(isNoPublicRoomIds) > 0 || len(bedIds) > 0 {
 
 		var results []map[string]any
 
@@ -281,8 +323,8 @@ func DoGrantByCreate(ctx *gin.Context) {
 			Table(model.TableDorBed).
 			Joins(fmt.Sprintf("left join %s on %s.id=%s.bed_id and %s.status", model.TableDorPeople, model.TableDorBed, model.TableDorPeople, model.TableDorPeople))
 
-		if request.Type > 0 {
-			tb = tb.Where(fmt.Sprintf("%s.bed_id=?", model.TableDorBed), typeBed.Id)
+		if len(typeBedIds) > 0 {
+			tb = tb.Where(fmt.Sprintf("%s.`bed_id` in (?)", model.TableDorBed), typeBedIds)
 		} else {
 			condition := data.Database
 
@@ -314,7 +356,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 			tb = tb.Where(condition)
 		}
 
-		tb.Find(&results)
+		tb.Scan(&results)
 
 		if len(results) <= 0 {
 			tx.Rollback()
@@ -327,15 +369,14 @@ func DoGrantByCreate(ctx *gin.Context) {
 				items := model.DorGrantDetail{
 					GrantId:    grant.Id,
 					PackageId:  grant.PackageId,
-					PositionId: 0,
-					TypeId:     int(item["type_id"].(int32)),
-					BuildingId: int(item["building_id"].(int32)),
-					FloorId:    int(item["floor_id"].(int32)),
-					RoomId:     int(item["room_id"].(int32)),
-					BedId:      int(item["id"].(int32)),
+					TypeId:     int(item["type_id"].(uint32)),
+					BuildingId: int(item["building_id"].(uint32)),
+					FloorId:    int(item["floor_id"].(uint32)),
+					RoomId:     int(item["room_id"].(uint32)),
+					BedId:      int(item["id"].(uint32)),
 					DeviceId:   value.DeviceId,
 					Number:     value.Number,
-					IsPublic:   item["is_public"].(int8),
+					IsPublic:   int8(item["is_public"].(uint8)),
 				}
 				if item["people_id"] != nil {
 					items.PeopleId = int(item["people_id"].(int32))

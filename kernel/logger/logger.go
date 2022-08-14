@@ -35,7 +35,7 @@ func folder() {
 	path := path("")
 
 	if err := os.MkdirAll(path, 0750); err != nil {
-		fmt.Printf("日志文件夹创建失败:%s\nerror:%v", path, err)
+		fmt.Printf("日志文件夹创建失败:%s\nerror:%v", path(""), err)
 		os.Exit(1)
 	}
 

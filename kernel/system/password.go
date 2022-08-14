@@ -18,7 +18,7 @@ func Password() {
 	password = strings.TrimSpace(password)
 
 	if password == "" {
-		color.Error.Println("密码不能为空")
+		color.Errorf("密码不能为空")
 		return
 	}
 

@@ -263,3 +263,14 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 	response.Success(ctx)
 }
+
+func DoPeopleByLeave(ctx *gin.Context) {
+
+	var request stay.DoPeopleByLeave
+
+	if err := ctx.ShouldBind(&request); err != nil {
+		response.FailByRequest(ctx, err)
+		return
+	}
+
+}

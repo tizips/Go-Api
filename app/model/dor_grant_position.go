@@ -23,6 +23,7 @@ type DorGrantPosition struct {
 }
 
 const (
+	DorGrantPositionLive     = "live"
 	DorGrantPositionType     = "type"
 	DorGrantPositionBuilding = "building"
 	DorGrantPositionFloor    = "floor"
