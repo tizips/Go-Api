@@ -47,7 +47,7 @@ func set(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
 func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
-	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist("admin", "refresh", claims.ID)).Result()
+	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", claims.ID)).Result()
 
 	now := carbon.Now()
 

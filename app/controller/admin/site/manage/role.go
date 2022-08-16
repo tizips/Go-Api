@@ -1,4 +1,4 @@
-package management
+package manage
 
 import (
 	"github.com/gin-gonic/gin"

@@ -10,7 +10,7 @@ import (
 
 func Admin(ctx *gin.Context) model.SysAdmin {
 
-	admin := model.SysAdmin{}
+	var admin model.SysAdmin
 
 	if Check(ctx) {
 		if temp, exist := ctx.Get(constant.ContextAdmin); exist {

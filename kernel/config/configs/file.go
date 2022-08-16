@@ -6,7 +6,7 @@ type File struct {
 	QiniuSecret string
 	QiniuBucket string
 	QiniuDomain string
-	QiniuPrefix string
+	QiniuPrefix string `default:"saas"`
 }
 
 const (

@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"saas/app/controller/admin/site/architecture"
 	"saas/app/controller/admin/site/helper"
-	"saas/app/controller/admin/site/management"
+	"saas/app/controller/admin/site/manage"
 )
 
 func RouteSite(route *gin.RouterGroup) {
@@ -16,46 +16,46 @@ func RouteSite(route *gin.RouterGroup) {
 			helperGroup.GET("apis", helper.ToApiByList)
 		}
 
-		managementGroup := site.Group("management")
+		manageGroup := site.Group("manage")
 		{
-			admins := managementGroup.Group("admins")
+			admins := manageGroup.Group("admins")
 			{
-				admins.GET("", management.ToAdminByPaginate)
-				admins.PUT(":id", management.DoAdminByUpdate)
-				admins.DELETE(":id", management.DoAdminByDelete)
+				admins.GET("", manage.ToAdminByPaginate)
+				admins.PUT(":id", manage.DoAdminByUpdate)
+				admins.DELETE(":id", manage.DoAdminByDelete)
 			}
 
-			admin := managementGroup.Group("admin")
+			admin := manageGroup.Group("admin")
 			{
-				admin.POST("", management.DoAdminByCreate)
-				admin.PUT("enable", management.DoAdminByEnable)
+				admin.POST("", manage.DoAdminByCreate)
+				admin.PUT("enable", manage.DoAdminByEnable)
 			}
 
-			permissions := managementGroup.Group("permissions")
+			permissions := manageGroup.Group("permissions")
 			{
-				permissions.GET("", management.ToPermissionByTree)
-				permissions.PUT(":id", management.DoPermissionByUpdate)
-				permissions.DELETE(":id", management.DoPermissionByDelete)
+				permissions.GET("", manage.ToPermissionByTree)
+				permissions.PUT(":id", manage.DoPermissionByUpdate)
+				permissions.DELETE(":id", manage.DoPermissionByDelete)
 			}
 
-			permission := managementGroup.Group("permission")
+			permission := manageGroup.Group("permission")
 			{
-				permission.GET("parents", management.ToPermissionByParents)
-				permission.GET("self", management.ToPermissionBySelf)
-				permission.POST("", management.DoPermissionByCreate)
+				permission.GET("parents", manage.ToPermissionByParents)
+				permission.GET("self", manage.ToPermissionBySelf)
+				permission.POST("", manage.DoPermissionByCreate)
 			}
 
-			roles := managementGroup.Group("roles")
+			roles := manageGroup.Group("roles")
 			{
-				roles.GET("", management.ToRoleByPaginate)
-				roles.PUT(":id", management.DoRoleByUpdate)
-				roles.DELETE(":id", management.DoRoleByDelete)
+				roles.GET("", manage.ToRoleByPaginate)
+				roles.PUT(":id", manage.DoRoleByUpdate)
+				roles.DELETE(":id", manage.DoRoleByDelete)
 			}
 
-			role := managementGroup.Group("role")
+			role := manageGroup.Group("role")
 			{
-				role.POST("", management.DoRoleByCreate)
-				role.GET("enable", management.ToRoleByEnable)
+				role.POST("", manage.DoRoleByCreate)
+				role.GET("enable", manage.ToRoleByEnable)
 			}
 		}
 

@@ -22,7 +22,7 @@ func OmitKey(method string, path string) string {
 	return method + ":" + path
 }
 
-//	被忽略返回的 Api
+// 被忽略返回的 Api
 func Omits() []Api {
 	return []Api{
 
@@ -35,9 +35,9 @@ func Omits() []Api {
 		{Method: http.MethodPost, Path: "/admin/account/logout"},
 
 		{Method: http.MethodGet, Path: "/admin/site/helper/apis"},
-		{Method: http.MethodGet, Path: "/admin/site/management/permission/parents"},
-		{Method: http.MethodGet, Path: "/admin/site/management/permission/self"},
-		{Method: http.MethodGet, Path: "/admin/site/management/role/enable"},
+		{Method: http.MethodGet, Path: "/admin/site/manage/permission/parents"},
+		{Method: http.MethodGet, Path: "/admin/site/manage/permission/self"},
+		{Method: http.MethodGet, Path: "/admin/site/manage/role/enable"},
 		{Method: http.MethodGet, Path: "/admin/site/architecture/module/online"},
 
 		{Method: http.MethodGet, Path: "/admin/dormitory/basic/type/online"},
