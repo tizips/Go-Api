@@ -24,7 +24,7 @@ func DoUploadBySimple(ctx *gin.Context) {
 		return
 	}
 
-	result, err := helper.DoUploadBySimple(ctx, "/system/"+request.Dir, file)
+	result, err := helper.DoUploadBySimple(ctx, "/cmd/"+request.Dir, file)
 
 	if err != nil || result == nil {
 		response.Fail(ctx, "上传失败，请稍后重试")

@@ -1,18 +1,31 @@
-package system
+package cmd
 
 import (
 	"errors"
 	"github.com/gookit/color"
 	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"saas/app/constant"
 	"saas/app/model"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
-	"saas/kernel/data"
 )
 
-func Root() {
+func Root(command *cobra.Command) {
+
+	cmd := &cobra.Command{
+		Use:   "root",
+		Short: "生成系统开发账号",
+		Run:   root,
+	}
+
+	command.AddCommand(cmd)
+
+}
+
+func root(cmd *cobra.Command, args []string) {
 
 	var username, mobile, nickname, password string
 
@@ -33,7 +46,7 @@ func Root() {
 
 	var admin model.SysAdmin
 
-	data.Database.Where("username=?", username).Find(&admin)
+	app.MySQL.Where("username=?", username).Find(&admin)
 
 	if admin.Id <= 0 {
 
@@ -46,7 +59,7 @@ func Root() {
 				}
 
 				var total int64
-				if data.Database.Model(&model.SysAdmin{}).Where("mobile=?", input).Count(&total); total > 0 {
+				if app.MySQL.Model(&model.SysAdmin{}).Where("mobile=?", input).Count(&total); total > 0 {
 					return errors.New("手机号已被使用")
 				}
 
@@ -97,25 +110,25 @@ func Root() {
 			IsEnable: constant.IsEnableYes,
 		}
 
-		if tx := data.Database.Create(&admin); tx.RowsAffected <= 0 {
+		if tx := app.MySQL.Create(&admin); tx.RowsAffected <= 0 {
 			color.Errorf("Create Admin error: %v", tx.Error)
 			return
 		}
 	}
 
-	if ok, _ := authorize.Casbin.HasRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(authorize.ROOT)); ok {
+	if ok, _ := app.Casbin.HasRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(authorize.ROOT)); ok {
 		color.Errorf("账号：%s 已经有 ROOT 权限", username)
 		return
 	}
 
 	var bind = model.SysAdminBindRole{AdminId: admin.Id, RoleId: authorize.ROOT}
-	data.Database.Where("`admin_id`=? and `role_id`=?", admin.Id, authorize.ROOT).FirstOrCreate(&bind)
+	app.MySQL.Where("`admin_id`=? and `role_id`=?", admin.Id, authorize.ROOT).FirstOrCreate(&bind)
 	if bind.Id <= 0 {
 		color.Errorln("Create Admin bind Role fail")
 		return
 	}
 
-	if ok, err := authorize.Casbin.AddRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(authorize.ROOT)); !ok {
+	if ok, err := app.Casbin.AddRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(authorize.ROOT)); !ok {
 		color.Errorf("Root create fail: %v", err)
 		return
 	}

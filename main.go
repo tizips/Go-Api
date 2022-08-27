@@ -6,6 +6,6 @@ import (
 
 func main() {
 
-	kernel.Application()
+	kernel.Bootstrap()
 
 }

@@ -5,7 +5,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -25,7 +25,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorDevice
-	data.Database.Where("`id` in (?)", deviceIds).Find(&devices)
+	app.MySQL.Find(&devices, "`id` in (?)", deviceIds)
 
 	for _, item := range request.Devices {
 		mark := true
@@ -45,7 +45,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	pack := model.DorPackage{
 		Name: request.Name,
@@ -92,8 +92,8 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	}
 
 	var pack model.DorPackage
-	data.Database.Preload("Details").Find(&pack, id)
-	if pack.Id <= 0 {
+
+	if app.MySQL.Preload("Details").Find(&pack, id); pack.Id <= 0 {
 		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
@@ -105,7 +105,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorDevice
-	data.Database.Where("id in (?)", deviceIds).Find(&devices)
+	app.MySQL.Where("id in (?)", deviceIds).Find(&devices)
 
 	for _, item := range request.Devices {
 		mark := true
@@ -159,7 +159,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if request.Name != pack.Name {
 		pack.Name = request.Name
@@ -209,13 +209,13 @@ func DoPackageByDelete(ctx *gin.Context) {
 	}
 
 	var pack model.DorPackage
-	data.Database.Find(&pack, id)
-	if pack.Id <= 0 {
+
+	if app.MySQL.Find(&pack, id); pack.Id <= 0 {
 		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if t := tx.Delete(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -249,7 +249,7 @@ func ToPackageByPaginate(ctx *gin.Context) {
 		Data:  make([]any, 0),
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if request.Keyword != "" {
 		tx = tx.Where("`name` like ?", "%"+request.Keyword+"%")
@@ -291,7 +291,8 @@ func ToPackageByOnline(ctx *gin.Context) {
 
 	var packages []model.DorPackage
 
-	data.Database.Order("`id` desc").Find(&packages)
+	app.MySQL.Order("`id` desc").Find(&packages)
+
 	for _, item := range packages {
 		responses = append(responses, assetResponse.ToPackageByOnline{
 			Id:   item.Id,

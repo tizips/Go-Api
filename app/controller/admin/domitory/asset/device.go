@@ -6,7 +6,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
 	asset2 "saas/app/response/admin/dormitory/asset"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -14,13 +14,14 @@ import (
 func DoDeviceByCreate(ctx *gin.Context) {
 
 	var request asset.DoDeviceByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorAssetCategory{}).Where("id=?", request.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
+	app.MySQL.Model(model.DorAssetCategory{}).Where("id=? and is_enable=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
 		response.NotFound(ctx, "类型不存在")
@@ -40,7 +41,7 @@ func DoDeviceByCreate(ctx *gin.Context) {
 		Remark:        request.Remark,
 	}
 
-	if t := data.Database.Create(&assets); t.RowsAffected <= 0 {
+	if t := app.MySQL.Create(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -51,19 +52,21 @@ func DoDeviceByCreate(ctx *gin.Context) {
 func DoDeviceByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request asset.DoDeviceByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorAssetCategory{}).Where("id=?", request.Category).Where("is_enable=?", constant.IsEnableYes).Count(&count)
+	app.MySQL.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
 		response.NotFound(ctx, "类型不存在")
@@ -71,8 +74,8 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 	}
 
 	var assets model.DorDevice
-	data.Database.Find(&assets, id)
-	if assets.Id <= 0 {
+
+	if app.MySQL.Find(&assets, id); assets.Id <= 0 {
 		response.NotFound(ctx, "资源不存在")
 		return
 	}
@@ -92,7 +95,7 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 	assets.StockTotal = request.Stock
 	assets.Remark = request.Remark
 
-	if t := data.Database.Save(&assets); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -103,19 +106,20 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 func DoDeviceByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var assets model.DorDevice
-	data.Database.Find(&assets, id)
-	if assets.Id <= 0 {
+
+	if app.MySQL.Find(&assets, id); assets.Id <= 0 {
 		response.NotFound(ctx, "资源不存在")
 		return
 	}
 
-	if t := data.Database.Delete(&assets); t.RowsAffected <= 0 {
+	if t := app.MySQL.Delete(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -126,6 +130,7 @@ func DoDeviceByDelete(ctx *gin.Context) {
 func ToDeviceByPaginate(ctx *gin.Context) {
 
 	var request asset.ToDeviceByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -137,7 +142,7 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 		Data: make([]any, 0),
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if request.Keyword != "" && request.Type == "no" {
 		tx = tx.Where("`no`=?", request.Keyword)
@@ -187,7 +192,7 @@ func ToDeviceByOnline(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	var devices []model.DorDevice
-	data.Database.Where("category_id=?", request.Category).Find(&devices)
+	app.MySQL.Where("category_id=?", request.Category).Find(&devices)
 
 	for _, item := range devices {
 		responses = append(responses, asset2.ToDeviceByOnline{

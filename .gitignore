@@ -2,7 +2,7 @@
 
 # production
 runtime
-conf/env.conf
+conf/env.yaml
 
 .idea
 *bak

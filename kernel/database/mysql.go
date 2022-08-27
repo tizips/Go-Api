@@ -1,4 +1,4 @@
-package data
+package database
 
 import (
 	"fmt"
@@ -7,57 +7,55 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 	"os"
-	"saas/kernel/config"
+	"saas/kernel/app"
 	"saas/kernel/logger"
 	"time"
 )
 
-var Database *gorm.DB
-
-func InitDatabase() {
+func InitMySQL() {
 
 	log := logger.NewGormLogger()
 	log.SlowThreshold = time.Millisecond * 200
 
 	var err error
 
-	Database, err = gorm.Open(mysql.Open(GetDns()), &gorm.Config{
+	app.MySQL, err = gorm.Open(mysql.Open(MySQLDail()), &gorm.Config{
 		Logger: log.LogMode(gormLogger.Info),
 		NamingStrategy: schema.NamingStrategy{
-			TablePrefix:   config.Values.Database.Prefix,
+			TablePrefix:   app.Cfg.Database.MySQL.Prefix,
 			SingularTable: true,
 		},
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 
 	if err != nil {
-		fmt.Printf("Mysql load fail:%s", err.Error())
+		fmt.Printf("MySQL load fail:%s", err.Error())
 		os.Exit(1)
 	}
 
-	sqlDB, err := Database.DB()
+	sqlDB, err := app.MySQL.DB()
 
 	if err != nil {
-		fmt.Printf("Mysql load fail:%s", err.Error())
+		fmt.Printf("MySQL load fail:%s", err.Error())
 		os.Exit(1)
 	}
 
 	// SetMaxIdleCons 设置空闲连接池中连接的最大数量
-	sqlDB.SetMaxIdleConns(config.Values.Database.MaxIdle)
+	sqlDB.SetMaxIdleConns(app.Cfg.Database.MySQL.MaxIdle)
 
 	// SetMaxOpenCons 设置打开数据库连接的最大数量。
-	sqlDB.SetMaxOpenConns(config.Values.Database.MaxIdle)
+	sqlDB.SetMaxOpenConns(app.Cfg.Database.MySQL.MaxIdle)
 
 	// SetConnMaxLifetime 设置了连接可复用的最大时间。
-	sqlDB.SetConnMaxLifetime(time.Duration(config.Values.Database.MaxLifetime) * time.Second)
+	sqlDB.SetConnMaxLifetime(time.Duration(app.Cfg.Database.MySQL.MaxLifetime) * time.Second)
 }
 
-func GetDns() string {
+func MySQLDail() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&parseTime=True&loc=Local",
-		config.Values.Database.Username,
-		config.Values.Database.Password,
-		config.Values.Database.Host,
-		config.Values.Database.Port,
-		config.Values.Database.Database,
-		config.Values.Database.Charset)
+		app.Cfg.Database.MySQL.Username,
+		app.Cfg.Database.MySQL.Password,
+		app.Cfg.Database.MySQL.Host,
+		app.Cfg.Database.MySQL.Port,
+		app.Cfg.Database.MySQL.Database,
+		app.Cfg.Database.MySQL.Charset)
 }

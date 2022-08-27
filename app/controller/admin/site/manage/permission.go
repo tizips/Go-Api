@@ -5,25 +5,25 @@ import (
 	"net/http"
 	"saas/app/constant"
 	"saas/app/model"
-	"saas/app/request/admin/site/management"
-	authResponse "saas/app/response/admin/site/management"
-	authService "saas/app/service/site/management"
+	"saas/app/request/admin/site/manage"
+	authResponse "saas/app/response/admin/site/manage"
+	authService "saas/app/service/site/manage"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
-	"saas/kernel/data"
 	"saas/kernel/response"
 	"strconv"
 )
 
 func DoPermissionByCreate(ctx *gin.Context) {
 
-	var request management.DoPermissionByCreate
+	var request manage.DoPermissionByCreate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
-	data.Database.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
+	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
 	if module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
@@ -34,7 +34,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 	var parent model.SysPermission
 
 	if request.Parent > 0 {
-		data.Database.Find(&parent, request.Parent)
+		app.MySQL.Find(&parent, request.Parent)
 		if parent.Id <= 0 {
 			response.Fail(ctx, "父级权限不存在")
 			return
@@ -59,7 +59,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	if request.Method != "" && request.Path != "" {
 		var count int64
-		data.Database.Model(model.SysPermission{}).Where("`method`=? and `path`=?", request.Method, request.Path).Count(&count)
+		app.MySQL.Model(model.SysPermission{}).Where("`method`=? and `path`=?", request.Method, request.Path).Count(&count)
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
 			return
@@ -76,7 +76,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 		Path:     request.Path,
 	}
 
-	data.Database.Create(&permission)
+	app.MySQL.Create(&permission)
 	if permission.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
@@ -93,14 +93,14 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var request management.DoPermissionByUpdate
+	var request manage.DoPermissionByUpdate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var permission model.SysPermission
-	data.Database.Find(&permission, id)
+	app.MySQL.Find(&permission, id)
 	if permission.Id <= 0 {
 		response.NotFound(ctx, "权限不存在")
 		return
@@ -111,7 +111,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if permission.ModuleId != request.Module {
 		var module model.SysModule
-		data.Database.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
+		app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
 		if module.Id <= 0 {
 			response.NotFound(ctx, "模块不存在")
 			return
@@ -123,7 +123,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	var parent model.SysPermission
 
 	if request.Parent > 0 {
-		data.Database.Find(&parent, request.Parent)
+		app.MySQL.Find(&parent, request.Parent)
 		if parent.Id <= 0 {
 			response.NotFound(ctx, "父级权限不存在")
 			return
@@ -146,7 +146,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if request.Method != "" && request.Path != "" {
 		var count int64
-		data.Database.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, request.Method, request.Path).Count(&count)
+		app.MySQL.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, request.Method, request.Path).Count(&count)
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
 			return
@@ -160,9 +160,9 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	permission.Method = request.Method
 	permission.Path = request.Path
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
-	if t := data.Database.Save(&permission); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "修改失败")
 		return
@@ -170,7 +170,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if method != request.Method || path != request.Path { //	变更权限
 		if method != "" || path != "" {
-			if _, err := authorize.Casbin.DeletePermission(method, path); err != nil {
+			if _, err := app.Casbin.DeletePermission(method, path); err != nil {
 				tx.Rollback()
 				response.Fail(ctx, "修改失败")
 				return
@@ -182,7 +182,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 			tx.Where("permission_id = ?", permission.Id).Find(&bindings)
 			if len(bindings) > 0 {
 				for _, item := range bindings {
-					if _, err := authorize.Casbin.AddPermissionForUser(authorize.NameByRole(item.RoleId), permission.Method, permission.Path); err != nil {
+					if _, err := app.Casbin.AddPermissionForUser(authorize.NameByRole(item.RoleId), permission.Method, permission.Path); err != nil {
 						tx.Rollback()
 						response.Fail(ctx, "修改失败")
 						return
@@ -207,13 +207,13 @@ func DoPermissionByDelete(ctx *gin.Context) {
 	}
 
 	var permission model.SysPermission
-	data.Database.Find(&permission, id)
+	app.MySQL.Find(&permission, id)
 	if permission.Id <= 0 {
 		response.Fail(ctx, "权限不存在")
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if t := tx.Delete(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -222,7 +222,7 @@ func DoPermissionByDelete(ctx *gin.Context) {
 	}
 
 	if permission.Method != "" && permission.Path != "" {
-		if _, err := authorize.Casbin.DeletePermission(permission.Method, permission.Path); err != nil {
+		if _, err := app.Casbin.DeletePermission(permission.Method, permission.Path); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "删除失败")
 			return
@@ -241,7 +241,7 @@ func DoPermissionByDelete(ctx *gin.Context) {
 			}
 
 			for _, item := range children {
-				if _, err := authorize.Casbin.DeletePermission(item.Method, item.Path); err != nil {
+				if _, err := app.Casbin.DeletePermission(item.Method, item.Path); err != nil {
 					tx.Rollback()
 					response.Fail(ctx, "删除失败")
 					return
@@ -262,7 +262,7 @@ func DoPermissionByDelete(ctx *gin.Context) {
 			}
 
 			for _, item := range children {
-				if _, err := authorize.Casbin.DeletePermission(item.Method, item.Path); err != nil {
+				if _, err := app.Casbin.DeletePermission(item.Method, item.Path); err != nil {
 					tx.Rollback()
 					response.Fail(ctx, "删除失败")
 					return
@@ -278,7 +278,7 @@ func DoPermissionByDelete(ctx *gin.Context) {
 
 func ToPermissionByTree(ctx *gin.Context) {
 
-	var request management.ToPermissionByTree
+	var request manage.ToPermissionByTree
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -296,7 +296,7 @@ func ToPermissionByTree(ctx *gin.Context) {
 
 func ToPermissionByParents(ctx *gin.Context) {
 
-	var request management.ToPermissionByTree
+	var request manage.ToPermissionByTree
 	if err := ctx.ShouldBind(&request); err != nil {
 		ctx.JSON(http.StatusOK, response.Responses{
 			Code:    40000,
@@ -327,7 +327,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 	if authorize.Root(authorize.Id(ctx)) {
 
 		var permissions []model.SysPermission
-		data.Database.Preload("Module").Find(&permissions)
+		app.MySQL.Preload("Module").Find(&permissions)
 
 		for _, item := range permissions {
 			mark := true

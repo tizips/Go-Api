@@ -1,15 +1,22 @@
 package snowflake
 
 import (
+	"fmt"
 	"github.com/bwmarrin/snowflake"
-	"saas/kernel/config"
+	"os"
+	"saas/kernel/app"
 )
 
-var Snowflake *snowflake.Node
+func InitSnowflake() {
 
-func InitSnowflake() (err error) {
+	var err error = nil
 
-	Snowflake, err = snowflake.NewNode(config.Values.Server.Node)
+	app.Snowflake, err = snowflake.NewNode(app.Cfg.Server.Node)
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(0)
+	}
 
 	return
 }

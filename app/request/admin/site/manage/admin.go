@@ -1,4 +1,4 @@
-package management
+package manage
 
 import "saas/app/request/basic"
 

@@ -22,7 +22,7 @@ func OmitKey(method string, path string) string {
 	return method + ":" + path
 }
 
-// 被忽略返回的 Api
+// Omits 被忽略返回的 Api
 func Omits() []Api {
 	return []Api{
 

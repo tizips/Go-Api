@@ -13,7 +13,7 @@ func InitCrontab() {
 
 	register()
 
-	crontab.Start()
+	go crontab.Start()
 
 }
 

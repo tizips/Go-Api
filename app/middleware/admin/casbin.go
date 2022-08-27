@@ -3,6 +3,7 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 	"saas/kernel/api"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
 	"saas/kernel/response"
 )
@@ -18,7 +19,7 @@ func CasbinMiddleware() gin.HandlerFunc {
 			if !authorize.Root(authorize.Id(ctx)) {
 
 				//	判断该用户是否有该接口的访问权限
-				if ok, _ := authorize.Casbin.Enforce(authorize.NameByAdmin(authorize.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
+				if ok, _ := app.Casbin.Enforce(authorize.NameByAdmin(authorize.Id(ctx)), ctx.Request.Method, ctx.FullPath()); !ok {
 					ctx.Abort()
 					response.Forbidden(ctx)
 					return

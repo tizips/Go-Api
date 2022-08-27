@@ -12,9 +12,8 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/stay"
 	stayResponse "saas/app/response/admin/dormitory/stay"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
-	"saas/kernel/snowflake"
 	"time"
 )
 
@@ -26,7 +25,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	tx := data.Database.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), request.Status)
+	tx := app.MySQL.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), request.Status)
 
 	if request.Floor > 0 {
 		tx = tx.Where("`floor_id`=?", request.Floor)
@@ -40,7 +39,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 
 	if request.Keyword != "" {
 
-		condition := data.Database.Select("1")
+		condition := app.MySQL.Select("1")
 
 		if request.Type == "mobile" {
 			condition = condition.
@@ -136,31 +135,31 @@ func DoPeopleByCreate(ctx *gin.Context) {
 	}
 
 	var bed model.DorBed
-	data.Database.Preload(clause.Associations).Where("`is_enable`=?", constant.IsEnableYes).Find(&bed, request.Bed)
+	app.MySQL.Preload(clause.Associations).Where("`is_enable`=?", constant.IsEnableYes).Find(&bed, request.Bed)
 	if bed.Id <= 0 {
 		response.NotFound(ctx, "床位不存在")
 		return
 	}
 
 	var category model.DorStayCategory
-	data.Database.Where("is_enable", constant.IsEnableYes).Find(&category, request.Category)
+	app.MySQL.Where("is_enable", constant.IsEnableYes).Find(&category, request.Category)
 	if category.Id <= 0 {
 		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	var count int64 = 0
-	data.Database.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
+	app.MySQL.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
 	if count > 0 {
 		response.Fail(ctx, "该手机号已办理了入住，无法重复办理")
 		return
 	}
 
 	var member model.MemMember
-	data.Database.Where("`mobile`=?", request.Mobile).Find(&member)
+	app.MySQL.Where("`mobile`=?", request.Mobile).Find(&member)
 	if member.Id == "" {
 
-		lock, err := redislock.New(data.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, nil)
+		lock, err := redislock.New(app.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, nil)
 		if err != nil {
 			response.Fail(ctx, "办理失败")
 			return
@@ -169,20 +168,20 @@ func DoPeopleByCreate(ctx *gin.Context) {
 		defer lock.Release(ctx)
 
 		member = model.MemMember{
-			Id:       snowflake.Snowflake.Generate().String(),
+			Id:       app.Snowflake.Generate().String(),
 			Mobile:   request.Mobile,
 			Name:     request.Name,
 			Nickname: request.Name,
 			IsEnable: constant.IsEnableYes,
 		}
 
-		if t := data.Database.Create(&member); t.RowsAffected <= 0 {
+		if t := app.MySQL.Create(&member); t.RowsAffected <= 0 {
 			response.Fail(ctx, "办理失败")
 			return
 		}
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	people := model.DorPeople{
 		CategoryId: category.Id,

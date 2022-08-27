@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"saas/kernel/config"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"time"
 )
@@ -23,12 +22,12 @@ func LimitMiddleware(option *LimitOption) gin.HandlerFunc {
 			expiration = option.Expiration
 		}
 
-		generator := fmt.Sprintf("%s:limit:%s:%s", config.Values.Server.Name, ctx.Request.URL, ctx.ClientIP())
+		generator := fmt.Sprintf("%s:limit:%s:%s", app.Cfg.Server.Name, ctx.Request.URL, ctx.ClientIP())
 		if option != nil && option.keyGenerator != nil {
-			generator = fmt.Sprintf("%s:limit:%s:%s", config.Values.Server.Name, ctx.Request.URL, option.keyGenerator(ctx))
+			generator = fmt.Sprintf("%s:limit:%s:%s", app.Cfg.Server.Name, ctx.Request.URL, option.keyGenerator(ctx))
 		}
 
-		number, err := data.Redis.Incr(ctx, generator).Result()
+		number, err := app.Redis.Incr(ctx, generator).Result()
 		if err != nil || number > int64(max) {
 			ctx.Abort()
 			ctx.JSON(http.StatusOK, response.Response{
@@ -38,7 +37,7 @@ func LimitMiddleware(option *LimitOption) gin.HandlerFunc {
 			return
 		}
 
-		data.Redis.Expire(ctx, generator, expiration)
+		app.Redis.Expire(ctx, generator, expiration)
 
 		ctx.Next()
 	}

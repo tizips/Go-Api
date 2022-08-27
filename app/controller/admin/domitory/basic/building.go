@@ -6,7 +6,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
 	basicResponse "saas/app/response/admin/dormitory/basic"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -26,7 +26,7 @@ func DoBuildingByCreate(ctx *gin.Context) {
 		IsPublic: request.IsPublic,
 	}
 
-	if data.Database.Create(&building); building.Id <= 0 {
+	if app.MySQL.Create(&building); building.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -49,7 +49,7 @@ func DoBuildingByUpdate(ctx *gin.Context) {
 	}
 
 	var building model.DorBuilding
-	data.Database.Find(&building, id)
+	app.MySQL.Find(&building, id)
 	if building.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼栋")
 		return
@@ -57,7 +57,7 @@ func DoBuildingByUpdate(ctx *gin.Context) {
 
 	if building.IsEnable != request.IsEnable {
 		var peoples int64 = 0
-		data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.MySQL.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
 			response.Fail(ctx, "该楼栋已有人入住，无法上下架")
 			return
@@ -68,7 +68,7 @@ func DoBuildingByUpdate(ctx *gin.Context) {
 	building.Order = request.Order
 	building.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&building); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -85,20 +85,20 @@ func DoBuildingByDelete(ctx *gin.Context) {
 	}
 
 	var building model.DorBuilding
-	data.Database.Find(&building, id)
+	app.MySQL.Find(&building, id)
 	if building.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		response.Fail(ctx, "该楼栋已有人入住，无法删除")
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if t := tx.Delete(&building); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -138,14 +138,14 @@ func DoBuildingByEnable(ctx *gin.Context) {
 	}
 
 	var building model.DorBuilding
-	data.Database.Find(&building, request.Id)
+	app.MySQL.Find(&building, request.Id)
 	if building.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼栋")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`building_id`=? and `status`=?", building.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		response.Fail(ctx, "该楼栋已有人入住，无法上下架")
 		return
@@ -153,7 +153,7 @@ func DoBuildingByEnable(ctx *gin.Context) {
 
 	building.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&building); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&building); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -166,7 +166,7 @@ func ToBuildingByList(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	var buildings []model.DorBuilding
-	data.Database.Order("`order` asc, `id` desc").Find(&buildings)
+	app.MySQL.Order("`order` asc, `id` desc").Find(&buildings)
 
 	for _, item := range buildings {
 		responses = append(responses, basicResponse.ToBuildingByList{
@@ -192,7 +192,7 @@ func ToBuildingByOnline(ctx *gin.Context) {
 
 	responses := make([]any, 0)
 
-	tx := data.Database.Where("`is_enable`=?", constant.IsEnableYes)
+	tx := app.MySQL.Where("`is_enable`=?", constant.IsEnableYes)
 
 	if request.IsPublic > 0 {
 		tx = tx.Where("`is_public`=?", request.IsPublic)

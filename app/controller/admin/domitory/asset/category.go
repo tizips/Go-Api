@@ -6,7 +6,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -14,6 +14,7 @@ import (
 func DoCategoryByCreate(ctx *gin.Context) {
 
 	var request asset.DoCategoryByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -25,7 +26,7 @@ func DoCategoryByCreate(ctx *gin.Context) {
 		IsEnable: request.IsEnable,
 	}
 
-	if data.Database.Create(&category); category.Id <= 0 {
+	if app.MySQL.Create(&category); category.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -36,20 +37,22 @@ func DoCategoryByCreate(ctx *gin.Context) {
 func DoCategoryByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request asset.DoCategoryByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var category model.DorAssetCategory
-	data.Database.Find(&category, id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
@@ -58,7 +61,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 	category.Order = request.Order
 	category.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&category); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -69,19 +72,20 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 func DoCategoryByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var category model.DorAssetCategory
-	data.Database.Find(&category, id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
-	if t := data.Database.Delete(&category); t.RowsAffected <= 0 {
+	if t := app.MySQL.Delete(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -92,21 +96,22 @@ func DoCategoryByDelete(ctx *gin.Context) {
 func DoCategoryByEnable(ctx *gin.Context) {
 
 	var request asset.DoCategoryByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var category model.DorAssetCategory
-	data.Database.Find(&category, request.Id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, request.Id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	category.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&category); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -119,7 +124,8 @@ func ToCategoryByList(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	var categories []model.DorAssetCategory
-	data.Database.Order("`order` asc, `id` desc").Find(&categories)
+
+	app.MySQL.Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
 		responses = append(responses, assetResponse.ToCategoryByList{
@@ -139,7 +145,7 @@ func ToCategoryByOnline(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	var categories []model.DorAssetCategory
-	data.Database.Where("`is_enable`=?", constant.IsEnableYes).Order("`order` asc, `id` desc").Find(&categories)
+	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
 		responses = append(responses, assetResponse.ToCategoryByOnline{

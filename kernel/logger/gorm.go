@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 	"gorm.io/gorm/utils"
-	//"os"
+	"saas/kernel/app"
 	"time"
 )
 
@@ -20,7 +20,7 @@ type GormLogrus struct {
 
 func NewGormLogger() *GormLogrus {
 	return &GormLogrus{
-		logger:                *Logger.SQL,
+		logger:                *app.Logger.SQL,
 		SkipErrRecordNotFound: false,
 	}
 }

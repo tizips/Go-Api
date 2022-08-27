@@ -9,7 +9,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
 	assetResponse "saas/app/response/admin/dormitory/asset"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 )
 
@@ -25,14 +25,13 @@ func DoGrantByCreate(ctx *gin.Context) {
 	var device model.DorDevice
 
 	if request.Package > 0 {
-		data.Database.Preload("Details").Find(&pack, request.Package)
-		if pack.Id <= 0 {
+		if app.MySQL.Preload("Details").Find(&pack, request.Package); pack.Id <= 0 {
 			response.NotFound(ctx, "打包不存在")
 			return
 		}
 	} else if request.Device > 0 {
-		data.Database.Find(&device, request.Device)
-		if device.Id <= 0 {
+
+		if app.MySQL.Find(&device, request.Device); device.Id <= 0 {
 			response.NotFound(ctx, "设备不存在")
 			return
 		}
@@ -53,14 +52,14 @@ func DoGrantByCreate(ctx *gin.Context) {
 			}
 		}
 
-		tx := data.Database
+		tx := app.MySQL
 		if len(typeIds) > 0 {
 			tx = tx.Where("`type_id` in (?)", typeIds)
 		}
 		if len(ids) > 0 {
 			tx = tx.Or("id IN (?)", ids)
 		}
-		data.Database.Where(tx).Find(&typeBeds)
+		app.MySQL.Where(tx).Find(&typeBeds)
 
 		if len(typeBeds) <= 0 {
 			response.NotFound(ctx, "未找到房型相关信息")
@@ -85,7 +84,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	grant := model.DorGrant{
 		Object:    "device",
@@ -141,7 +140,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 		var peoples []model.DorPeople
 
 		now := carbon.Now()
-		data.Database.Where("`start`<=? and `status`=?", now.ToDateString(), model.DorPeopleStatusLive).Find(&peoples)
+		app.MySQL.Where("`start`<=? and `status`=?", now.ToDateString(), model.DorPeopleStatusLive).Find(&peoples)
 
 		if len(peoples) <= 0 {
 			response.NotFound(ctx, "暂未找到入住人员")
@@ -199,8 +198,8 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if len(buildingIds) > 0 {
 		var buildings []model.DorBuilding
-		data.Database.Find(&buildings, buildingIds)
-		if len(buildings) != len(buildingIds) {
+
+		if app.MySQL.Find(&buildings, buildingIds); len(buildings) != len(buildingIds) {
 			response.NotFound(ctx, "部分楼栋未找到")
 			return
 		}
@@ -228,8 +227,8 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if len(floorIds) > 0 {
 		var floors []model.DorFloor
-		data.Database.Find(&floors, floorIds)
-		if len(floors) != len(floorIds) {
+
+		if app.MySQL.Find(&floors, floorIds); len(floors) != len(floorIds) {
 			response.NotFound(ctx, "部分楼层未找到")
 			return
 		}
@@ -292,8 +291,8 @@ func DoGrantByCreate(ctx *gin.Context) {
 	}
 	if len(bedIds) > 0 {
 		var beds []model.DorBed
-		data.Database.Find(&beds, bedIds)
-		if len(beds) != len(bedIds) {
+
+		if app.MySQL.Find(&beds, bedIds); len(beds) != len(bedIds) {
 			response.NotFound(ctx, "部分床位未找到")
 			return
 		}
@@ -318,7 +317,7 @@ func DoGrantByCreate(ctx *gin.Context) {
 
 		var results []map[string]any
 
-		tb := data.Database.
+		tb := app.MySQL.
 			Select(fmt.Sprintf("%s.*, %s.id as people_id, %s.id as member_id", model.TableDorBed, model.TableDorPeople, model.TableDorPeople)).
 			Table(model.TableDorBed).
 			Joins(fmt.Sprintf("left join %s on %s.id=%s.bed_id and %s.status", model.TableDorPeople, model.TableDorBed, model.TableDorPeople, model.TableDorPeople))
@@ -326,25 +325,25 @@ func DoGrantByCreate(ctx *gin.Context) {
 		if len(typeBedIds) > 0 {
 			tb = tb.Where(fmt.Sprintf("%s.`bed_id` in (?)", model.TableDorBed), typeBedIds)
 		} else {
-			condition := data.Database
+			condition := app.MySQL
 
 			if len(isNoPublicBuildingIds) > 0 {
 				condition = condition.
-					Or(data.Database.
+					Or(app.MySQL.
 						Where(fmt.Sprintf("%s.is_public=?", model.TableDorBed), model.DorBedIsPublicNo).
 						Where(fmt.Sprintf("%s.building_id in ?", model.TableDorBed), isNoPublicBuildingIds),
 					)
 			}
 			if len(isNoPublicFloorIds) > 0 {
 				condition = condition.
-					Or(data.Database.
+					Or(app.MySQL.
 						Where(fmt.Sprintf("%s.is_public=?", model.TableDorBed), model.DorBedIsPublicNo).
 						Where(fmt.Sprintf("%s.floor_id_id in ?", model.TableDorBed), isNoPublicFloorIds),
 					)
 			}
 			if len(isNoPublicRoomIds) > 0 {
 				condition = condition.
-					Or(data.Database.
+					Or(app.MySQL.
 						Where(fmt.Sprintf("%s.is_public=?", model.TableDorBed), model.DorBedIsPublicNo).
 						Where(fmt.Sprintf("%s.room_id in ?", model.TableDorBed), isNoPublicRoomIds),
 					)
@@ -425,25 +424,25 @@ func DoGrantByCreate(ctx *gin.Context) {
 func DoGrantByRevoke(ctx *gin.Context) {
 
 	var request asset.DoGrantByRevoke
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var grant model.DorGrant
-	data.Database.Find(&grant, request.Id)
-	if grant.Id <= 0 {
+
+	if app.MySQL.Find(&grant, request.Id); grant.Id <= 0 {
 		response.NotFound(ctx, "发放记录不存在")
 		return
 	}
 
-	hours := grant.CreatedAt.DiffAbsInSeconds(carbon.Now())
-	if hours > 86400 {
+	if hours := grant.CreatedAt.DiffAbsInSeconds(carbon.Now()); hours > 86400 {
 		response.Fail(ctx, "本次发放已无法撤销")
 		return
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if t := tx.Save(&grant); t.RowsAffected <= 0 {
 		ctx.JSON(http.StatusOK, response.Response{
@@ -481,6 +480,7 @@ func DoGrantByRevoke(ctx *gin.Context) {
 func ToGrantByPaginate(ctx *gin.Context) {
 
 	var request asset.ToGrantByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -492,11 +492,11 @@ func ToGrantByPaginate(ctx *gin.Context) {
 		Data: make([]any, 0),
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	tc := tx
 
-	tc.Table(model.TableDorGrant).Count(&responses.Total)
+	tc.Model(model.DorGrant{}).Count(&responses.Total)
 
 	if responses.Total > 0 {
 		var grants []model.DorGrant

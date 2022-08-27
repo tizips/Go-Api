@@ -7,7 +7,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
 	basicResponse "saas/app/response/admin/dormitory/basic"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -21,7 +21,7 @@ func DoFloorByCreate(ctx *gin.Context) {
 	}
 
 	var building model.DorBuilding
-	data.Database.Where("is_enable=?", constant.IsEnableYes).Find(&building, request.Building)
+	app.MySQL.Where("is_enable=?", constant.IsEnableYes).Find(&building, request.Building)
 	if building.Id <= 0 {
 		response.NotFound(ctx, "楼栋不存在")
 		return
@@ -39,7 +39,7 @@ func DoFloorByCreate(ctx *gin.Context) {
 		IsPublic:   request.IsPublic,
 	}
 
-	if data.Database.Create(&floor); floor.Id <= 0 {
+	if app.MySQL.Create(&floor); floor.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -62,7 +62,7 @@ func DoFloorByUpdate(ctx *gin.Context) {
 	}
 
 	var floor model.DorFloor
-	data.Database.Find(&floor, id)
+	app.MySQL.Find(&floor, id)
 	if floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
@@ -70,7 +70,7 @@ func DoFloorByUpdate(ctx *gin.Context) {
 
 	if request.Building != floor.BuildingId {
 		var count int64
-		data.Database.Model(model.DorBuilding{}).Where("`id`=? and `is_enable`=?", request.Building, constant.IsEnableYes).Count(&count)
+		app.MySQL.Model(model.DorBuilding{}).Where("`id`=? and `is_enable`=?", request.Building, constant.IsEnableYes).Count(&count)
 		if count <= 0 {
 			response.NotFound(ctx, "楼栋不存在")
 			return
@@ -81,7 +81,7 @@ func DoFloorByUpdate(ctx *gin.Context) {
 
 	if floor.IsEnable != request.IsEnable {
 		var peoples int64 = 0
-		data.Database.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
 			response.Fail(ctx, "该楼层已有人入住，无法上下架")
 			return
@@ -92,7 +92,7 @@ func DoFloorByUpdate(ctx *gin.Context) {
 	floor.Order = request.Order
 	floor.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&floor); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&floor); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -109,14 +109,14 @@ func DoFloorByDelete(ctx *gin.Context) {
 	}
 
 	var floor model.DorFloor
-	data.Database.Find(&floor, id)
+	app.MySQL.Find(&floor, id)
 	if floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		ctx.JSON(http.StatusOK, response.Response{
 			Code:    40400,
@@ -125,7 +125,7 @@ func DoFloorByDelete(ctx *gin.Context) {
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if t := tx.Delete(&floor); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -159,14 +159,14 @@ func DoFloorByEnable(ctx *gin.Context) {
 	}
 
 	var floor model.DorFloor
-	data.Database.Find(&floor, request.Id)
+	app.MySQL.Find(&floor, request.Id)
 	if floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		response.Fail(ctx, "该楼层已有人入住，无法上下架")
 		return
@@ -174,7 +174,7 @@ func DoFloorByEnable(ctx *gin.Context) {
 
 	floor.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&floor); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&floor); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -193,7 +193,7 @@ func ToFloorByList(ctx *gin.Context) {
 	responses := make([]any, 0)
 
 	var floors []model.DorFloor
-	data.Database.
+	app.MySQL.
 		Preload("Building").
 		Where("`building_id`=?", request.Building).
 		Order("`order` asc, `id` desc").
@@ -224,7 +224,7 @@ func ToFloorByOnline(ctx *gin.Context) {
 
 	responses := make([]any, 0)
 
-	tx := data.Database.Where("`building_id`=? and `is_enable`=?", request.Building, constant.IsEnableYes)
+	tx := app.MySQL.Where("`building_id`=? and `is_enable`=?", request.Building, constant.IsEnableYes)
 
 	if request.IsPublic > 0 {
 		tx = tx.Where("`is_public`=?", request.IsPublic)

@@ -1,4 +1,4 @@
-package management
+package manage
 
 type TreePermission struct {
 	Id        int              `json:"id"`

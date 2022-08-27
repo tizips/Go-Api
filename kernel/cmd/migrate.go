@@ -1,4 +1,4 @@
-package system
+package cmd
 
 import (
 	"database/sql"
@@ -6,18 +6,23 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/spf13/cobra"
 	"os"
-	"saas/kernel/config"
-	"saas/kernel/data"
+	"saas/kernel/database"
 )
 
-func Migrate() {
+func Migrate(cmd *cobra.Command) error {
+
+	return nil
+}
+
+func handler() {
 	fmt.Println("Migrate")
 
 	m := connect()
 
 	if err := m.Up(); err != nil {
-		fmt.Printf("Mysql migrate fail:%s", err.Error())
+		fmt.Printf("MySQL migrate fail:%s", err.Error())
 		return
 	}
 
@@ -26,9 +31,9 @@ func Migrate() {
 
 func connect() *migrate.Migrate {
 
-	db, err := sql.Open(config.Values.Database.Driver, data.GetDns())
+	db, err := sql.Open("mysql", database.MySQLDail())
 	if err != nil {
-		fmt.Printf("Mysql connect fail:%s", err.Error())
+		fmt.Printf("MySQL connect fail:%s", err.Error())
 		os.Exit(1)
 	}
 
@@ -36,7 +41,7 @@ func connect() *migrate.Migrate {
 
 	driver, err := mysql.WithInstance(db, &mysql.Config{})
 	if err != nil {
-		fmt.Printf("Mysql casbin fail:%s", err.Error())
+		fmt.Printf("MySQL casbin fail:%s", err.Error())
 		os.Exit(1)
 	}
 
@@ -47,7 +52,7 @@ func connect() *migrate.Migrate {
 	)
 
 	if err != nil {
-		fmt.Printf("Mysql migrate fail:%s", err.Error())
+		fmt.Printf("MySQL migrate fail:%s", err.Error())
 		os.Exit(1)
 	}
 

@@ -3,8 +3,8 @@ package basic
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
-	"saas/kernel/logger"
 	"time"
 )
 
@@ -30,7 +30,7 @@ func LoggerMiddleware() gin.HandlerFunc {
 			fields["admin"] = id
 		}
 
-		logger.Logger.Api.Info(fields)
+		app.Logger.Api.Info(fields)
 
 	}
 }

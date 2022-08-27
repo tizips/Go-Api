@@ -2,14 +2,14 @@ package cache
 
 import (
 	"fmt"
-	"saas/kernel/config"
+	"saas/kernel/app"
 	"time"
 )
 
 func Key(table string, id any) string {
-	return fmt.Sprintf("%s:%s:%s:%v", config.Values.Server.Name, config.Values.Redis.CachePrefix, table, id)
+	return fmt.Sprintf("%s:%s:%s:%v", app.Cfg.Server.Name, "cache", table, id)
 }
 
 func ttl() time.Duration {
-	return time.Duration(config.Values.Redis.CacheTtl) * time.Second
+	return time.Duration(86400) * time.Second
 }

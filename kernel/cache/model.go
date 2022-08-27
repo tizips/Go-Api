@@ -7,7 +7,7 @@ import (
 	"gorm.io/gorm"
 	"reflect"
 	"saas/app/helper/str"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"strings"
 )
 
@@ -24,17 +24,17 @@ func (m *Model) AfterDelete(tx *gorm.DB) (err error) {
 	return
 }
 
-//	数据修改之后，自动删除缓存模型
+// 数据修改之后，自动删除缓存模型
 func (m *Model) clear(tx *gorm.DB) {
 
 	key := id(tx)
 
 	if key != "" {
-		data.Redis.Del(tx.Statement.Context, Key(tx.Statement.Schema.Table, key))
+		app.Redis.Del(tx.Statement.Context, Key(tx.Statement.Schema.Table, key))
 	}
 }
 
-//	优先从缓存中获取模型
+// 优先从缓存中获取模型
 func FindById(ctx *gin.Context, model any, id any) {
 
 	t := reflect.TypeOf(model).Elem()
@@ -42,17 +42,17 @@ func FindById(ctx *gin.Context, model any, id any) {
 	if t.Kind() == reflect.Struct {
 
 		table := str.Snake(t.Name())
-		result, err := data.Redis.Get(ctx, Key(table, id)).Result()
+		result, err := app.Redis.Get(ctx, Key(table, id)).Result()
 
 		if err == nil && result != "" {
 			_ = json.Unmarshal([]byte(result), &model)
 			return
 		}
 
-		tx := data.Database.Find(&model, id)
+		tx := app.MySQL.Find(&model, id)
 		if tx.RowsAffected > 0 {
 			hash, _ := json.Marshal(model)
-			data.Redis.Set(ctx, Key(table, id), string(hash), ttl())
+			app.Redis.Set(ctx, Key(table, id), string(hash), ttl())
 		}
 	}
 }

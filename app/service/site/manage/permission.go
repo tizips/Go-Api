@@ -1,24 +1,24 @@
-package management
+package manage
 
 import (
 	"saas/app/model"
-	"saas/app/response/admin/site/management"
-	"saas/kernel/data"
+	"saas/app/response/admin/site/manage"
+	"saas/kernel/app"
 )
 
-func TreePermission(module int, parent bool, simple bool) []management.TreePermission {
+func TreePermission(module int, parent bool, simple bool) []manage.TreePermission {
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if module > 0 {
-		tx = tx.Where("module_id = ?", module)
+		tx = tx.Where("`module_id` = ?", module)
 	}
 
 	if parent {
 		tx = tx.
-			Where("parent_i2 <= ?", 0).
-			Where("method = ?", "").
-			Where("path = ?", "")
+			Where("`parent_i2` <= ?", 0).
+			Where("`method` = ?", "").
+			Where("`path` = ?", "")
 	}
 
 	var permissions []model.SysPermission
@@ -28,9 +28,9 @@ func TreePermission(module int, parent bool, simple bool) []management.TreePermi
 	return HandlerTree(permissions, parent, simple)
 }
 
-func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []management.TreePermission {
+func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []manage.TreePermission {
 
-	var responses []management.TreePermission
+	var responses []manage.TreePermission
 
 	if len(permissions) > 0 {
 
@@ -42,7 +42,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 			} else if item.ParentI1 > 0 {
 				children1 = append(children1, item)
 			} else {
-				temp := management.TreePermission{
+				temp := manage.TreePermission{
 					Id:        item.Id,
 					Name:      item.Name,
 					Slug:      item.Slug,
@@ -64,7 +64,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 		for index, item := range responses {
 			for _, value := range children1 {
 				if item.Id == value.ParentI1 {
-					childrenI1 := management.TreePermission{
+					childrenI1 := manage.TreePermission{
 						Id:        value.Id,
 						Parents:   []int{value.ParentI1},
 						Name:      value.Name,
@@ -77,7 +77,7 @@ func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []
 					if !parent {
 						for _, val := range children2 {
 							if childrenI1.Id == val.ParentI2 {
-								childrenI2 := management.TreePermission{
+								childrenI2 := manage.TreePermission{
 									Id:        val.Id,
 									Parents:   []int{val.ParentI1, val.ParentI2},
 									Name:      val.Name,

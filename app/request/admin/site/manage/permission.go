@@ -1,4 +1,4 @@
-package management
+package manage
 
 type ToPermissionByTree struct {
 	Module int `form:"module" binding:"required,number,gt=0" label:"模块"`

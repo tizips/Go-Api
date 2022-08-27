@@ -6,7 +6,7 @@ import (
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 	"saas/app/model"
-	"saas/kernel/data"
+	"saas/kernel/app"
 )
 
 func CrontabDayPeople(cron *cron.Cron) {
@@ -24,10 +24,10 @@ func handler() {
 
 	var peoples []model.DorPeople
 
-	data.Database.
+	app.MySQL.
 		Preload("Master", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 		Where("`start`<=? and `status`=?", now.Yesterday().ToDateString(), model.DorPeopleStatusLive).
-		Where("not exists (?)", data.Database.
+		Where("not exists (?)", app.MySQL.
 			Select("1").
 			Table(model.TableDorDay).
 			Where(fmt.Sprintf("%s.`id`=%s.`people_id`", model.TableDorPeople, model.TableDorDay)).
@@ -52,7 +52,7 @@ func handler() {
 						Date:           carbon.Date{Carbon: now.Yesterday()},
 					}
 				}
-				data.Database.Create(&days)
+				app.MySQL.Create(&days)
 			}
 
 			return nil

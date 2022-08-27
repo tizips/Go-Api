@@ -6,7 +6,7 @@ import (
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
 	basicResponse "saas/app/response/admin/dormitory/basic"
-	"saas/kernel/data"
+	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
 )
@@ -20,7 +20,7 @@ func DoBedByCreate(ctx *gin.Context) {
 	}
 
 	var room model.DorRoom
-	data.Database.Where("`is_enable`=?", constant.IsEnableYes).Find(&room, request.Room)
+	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&room, request.Room)
 	if room.Id <= 0 {
 		response.NotFound(ctx, "房间不存在")
 		return
@@ -41,7 +41,7 @@ func DoBedByCreate(ctx *gin.Context) {
 		IsPublic:   request.IsPublic,
 	}
 
-	if data.Database.Create(&bed); room.Id <= 0 {
+	if app.MySQL.Create(&bed); room.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -64,7 +64,7 @@ func DoBedByUpdate(ctx *gin.Context) {
 	}
 
 	var bed model.DorBed
-	data.Database.Find(&bed, id)
+	app.MySQL.Find(&bed, id)
 	if bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
@@ -72,7 +72,7 @@ func DoBedByUpdate(ctx *gin.Context) {
 
 	if bed.IsEnable != request.IsEnable {
 		var peoples int64 = 0
-		data.Database.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.MySQL.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
 		if peoples > 0 {
 			response.Fail(ctx, "该床位已有人入住，无法上下架")
 			return
@@ -83,7 +83,7 @@ func DoBedByUpdate(ctx *gin.Context) {
 	bed.Order = request.Order
 	bed.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&bed); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&bed); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -100,20 +100,20 @@ func DoBedByDelete(ctx *gin.Context) {
 	}
 
 	var bed model.DorBed
-	data.Database.Find(&bed, id)
+	app.MySQL.Find(&bed, id)
 	if bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		response.Fail(ctx, "该床位已有人入住，无法删除")
 		return
 	}
 
-	if t := data.Database.Delete(&bed); t.RowsAffected <= 0 {
+	if t := app.MySQL.Delete(&bed); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -130,14 +130,14 @@ func DoBedByEnable(ctx *gin.Context) {
 	}
 
 	var bed model.DorBed
-	data.Database.Find(&bed, request.Id)
+	app.MySQL.Find(&bed, request.Id)
 	if bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
 	}
 
 	var peoples int64 = 0
-	data.Database.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.MySQL.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
 	if peoples > 0 {
 		response.Fail(ctx, "该床位已有人入住，无法上下架")
 		return
@@ -145,7 +145,7 @@ func DoBedByEnable(ctx *gin.Context) {
 
 	bed.IsEnable = request.IsEnable
 
-	if t := data.Database.Save(&bed); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&bed); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -167,7 +167,7 @@ func ToBedByPaginate(ctx *gin.Context) {
 		Data: make([]any, 0),
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if request.Room > 0 {
 		tx = tx.Where("`room_id`", request.Floor)
@@ -230,7 +230,7 @@ func ToBedByOnline(ctx *gin.Context) {
 
 	responses := make([]any, 0)
 
-	tx := data.Database.Where("`room_id`=? and `is_enable`=?", request.Room, constant.IsEnableYes)
+	tx := app.MySQL.Where("`room_id`=? and `is_enable`=?", request.Room, constant.IsEnableYes)
 
 	if request.IsPublic > 0 {
 		tx = tx.Where("`is_public`=?", request.IsPublic)

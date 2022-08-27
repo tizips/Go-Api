@@ -1,100 +1,33 @@
 package config
 
 import (
-	"fmt"
-	"github.com/gin-gonic/gin"
-	"gopkg.in/ini.v1"
+	"github.com/creasty/defaults"
+	"github.com/gookit/color"
+	"gopkg.in/yaml.v3"
 	"os"
-	"reflect"
-	"saas/app/helper/str"
-	"saas/kernel/config/configs"
-	"strconv"
+	"saas/kernel/app"
 )
-
-var Application system
-
-var Values struct {
-	Server   configs.Server
-	Database configs.Database
-	Redis    configs.Redis
-	Jwt      configs.Jwt
-	File     configs.File
-	Amqp     configs.Amqp
-}
-
-type system struct {
-	Application *gin.Engine
-	Path        string
-	Runtime     string
-}
 
 func InitConfig() {
 
 	pwd, _ := os.Getwd()
 
-	Application = system{
-		Path:    pwd,
-		Runtime: pwd + "/runtime",
-	}
+	app.Dir.Root = pwd
+	app.Dir.Runtime = pwd + "/runtime"
 
-	handler()
-
-}
-
-func handler() {
-
-	cfg, err := ini.Load(Application.Path + "/conf/env.conf")
-
+	file, err := os.ReadFile(app.Dir.Root + "/conf/env.yaml")
 	if err != nil {
-		fmt.Printf("Fail to load env file: %v", err)
+		color.Errorf("Fail to load env file: %v\n", err)
 		os.Exit(1)
 	}
 
-	e := reflect.ValueOf(&Values).Elem()
+	if err := yaml.Unmarshal(file, &app.Cfg); err != nil {
+		color.Errorf("Fail to parse env file: %v\n", err)
+		os.Exit(1)
+	}
 
-	for i := 0; i < e.NumField(); i++ {
-
-		section := str.Snake(e.Field(i).Type().Name())
-
-		for j := 0; j < e.Field(i).Type().NumField(); j++ {
-
-			key := str.Snake(e.Field(i).Type().Field(j).Name)
-
-			defaults := e.Field(i).Type().Field(j).Tag.Get("default")
-
-			types := e.Field(i).Type().Field(j).Type.Kind()
-
-			values := cfg.Section(section).Key(key)
-
-			switch types {
-			case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-				val, _ := values.Int64()
-				if val <= 0 {
-					val, _ = strconv.ParseInt(defaults, 10, 64)
-				}
-				e.Field(i).Field(j).SetInt(val)
-			case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-				val, _ := values.Uint64()
-				if val <= 0 {
-					val, _ = strconv.ParseUint(defaults, 10, 64)
-				}
-				e.Field(i).Field(j).SetUint(val)
-			case reflect.Float32, reflect.Float64:
-				val, _ := values.Float64()
-				if val <= 0 {
-					val, _ = strconv.ParseFloat(defaults, 32)
-				}
-				e.Field(i).Field(j).SetFloat(val)
-			case reflect.Bool:
-				val := values.MustBool(defaults == "true")
-				e.Field(i).Field(j).SetBool(val)
-			case reflect.String:
-				val := values.String()
-				if val == "" && defaults != "" {
-					val = defaults
-				}
-				e.Field(i).Field(j).SetString(val)
-			}
-		}
+	if err := defaults.Set(&app.Cfg); err != nil {
+		color.Errorf("Fail to default env params: %v\n", err)
+		os.Exit(1)
 	}
 }

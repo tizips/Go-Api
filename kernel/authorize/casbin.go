@@ -5,23 +5,20 @@ import (
 	"github.com/casbin/casbin/v2"
 	adapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/gookit/color"
-	"saas/kernel/config"
-	"saas/kernel/data"
+	"saas/kernel/app"
 )
 
 const ROOT = 666
 
-var Casbin *casbin.Enforcer
-
 func InitCasbin() {
 
-	a, err := adapter.NewAdapterByDBUseTableName(data.Database, config.Values.Database.Prefix, "sys_casbin")
+	a, err := adapter.NewAdapterByDBUseTableName(app.MySQL, app.Cfg.Database.MySQL.Prefix, "sys_casbin")
 	if err != nil {
 		color.Errorf("Casbin new adapter error: %v", err)
 		return
 	}
 
-	Casbin, err = casbin.NewEnforcer(config.Application.Path+"/conf/casbin.conf", a)
+	app.Casbin, err = casbin.NewEnforcer(app.Dir.Root+"/conf/casbin.conf", a)
 	if err != nil {
 		color.Errorf("Casbin new enforcer error: %v", err)
 		return
@@ -38,6 +35,6 @@ func NameByRole(id any) string {
 }
 
 func Root(id any) bool {
-	exist, _ := Casbin.HasRoleForUser(NameByAdmin(id), NameByRole(ROOT))
+	exist, _ := app.Casbin.HasRoleForUser(NameByAdmin(id), NameByRole(ROOT))
 	return exist
 }

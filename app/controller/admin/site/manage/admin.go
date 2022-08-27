@@ -6,17 +6,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
 	"saas/app/model"
-	"saas/app/request/admin/site/management"
-	authResponse "saas/app/response/admin/site/management"
+	"saas/app/request/admin/site/manage"
+	authResponse "saas/app/response/admin/site/manage"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
-	"saas/kernel/data"
 	"saas/kernel/response"
 	"strconv"
 )
 
 func DoAdminByCreate(ctx *gin.Context) {
 
-	var request management.DoAdminByCreate
+	var request manage.DoAdminByCreate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -24,7 +24,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 	var count int64
 
-	tc := data.Database.Model(model.SysRole{})
+	tc := app.MySQL.Model(model.SysRole{})
 
 	if !authorize.Root(authorize.Id(ctx)) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
@@ -37,13 +37,13 @@ func DoAdminByCreate(ctx *gin.Context) {
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("`mobile`=?", request.Mobile).Count(&count)
+	app.MySQL.Model(model.SysAdmin{}).Where("`mobile`=?", request.Mobile).Count(&count)
 	if count > 0 {
 		response.Fail(ctx, "该手机号已被注册")
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("username = ?", request.Username).Count(&count)
+	app.MySQL.Model(model.SysAdmin{}).Where("username = ?", request.Username).Count(&count)
 	if count > 0 {
 		response.Fail(ctx, "该用户名已被注册")
 		return
@@ -51,7 +51,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 	password, _ := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	admin := model.SysAdmin{
 		Username: request.Username,
@@ -88,7 +88,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 			items[idx] = authorize.NameByRole(item.RoleId)
 		}
 
-		if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
+		if _, err := app.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "添加失败")
 			return
@@ -108,14 +108,14 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	var request management.DoAdminByUpdate
+	var request manage.DoAdminByUpdate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var count int64
-	tc := data.Database.Model(model.SysRole{})
+	tc := app.MySQL.Model(model.SysRole{})
 	if !authorize.Root(authorize.Id(ctx)) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
 	}
@@ -126,7 +126,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	data.Database.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, request.Mobile).Count(&count)
+	app.MySQL.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, request.Mobile).Count(&count)
 	if count > 0 {
 		response.Fail(ctx, "该手机号已被注册")
 		return
@@ -134,7 +134,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 	var admin model.SysAdmin
 
-	data.Database.Preload("BindRoles").Find(&admin, id)
+	app.MySQL.Preload("BindRoles").Find(&admin, id)
 	if admin.Id <= 0 {
 		response.Fail(ctx, "该账号不存在")
 		return
@@ -184,7 +184,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
 	if t := tx.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -193,7 +193,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 	}
 
 	if request.IsEnable != constant.IsEnableYes { //	用户禁用，删除缓存角色
-		if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
+		if _, err := app.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "修改失败")
 			return
@@ -203,7 +203,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		for idx, item := range request.Roles {
 			items[idx] = authorize.NameByRole(item)
 		}
-		if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
+		if _, err := app.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "修改失败")
 			return
@@ -220,7 +220,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 		if len(del) > 0 && request.IsEnable == constant.IsEnableYes { //	用户启用，结算需要删除的角色
 			for _, item := range del {
-				if _, err := authorize.Casbin.DeleteRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(item)); err != nil {
+				if _, err := app.Casbin.DeleteRoleForUser(authorize.NameByAdmin(admin.Id), authorize.NameByRole(item)); err != nil {
 					tx.Rollback()
 					response.Fail(ctx, "修改失败")
 					return
@@ -243,7 +243,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 				items[idx] = authorize.NameByRole(item.RoleId)
 			}
 
-			if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
+			if _, err := app.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 				tx.Rollback()
 				response.Fail(ctx, "修改失败")
 				return
@@ -258,16 +258,16 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 func ToAdminByPaginate(ctx *gin.Context) {
 
-	var request management.ToAdminByPaginate
+	var request manage.ToAdminByPaginate
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	tx := data.Database
+	tx := app.MySQL
 
 	if !authorize.Root(authorize.Id(ctx)) {
-		tx = tx.Where("not exists (?)", data.Database.
+		tx = tx.Where("not exists (?)", app.MySQL.
 			Select("1").
 			Model(model.SysAdminBindRole{}).
 			Where(fmt.Sprintf("%s.id=%s.admin_id", model.TableSysAdmin, model.TableSysAdminBindRole)).
@@ -333,15 +333,15 @@ func DoAdminByDelete(ctx *gin.Context) {
 	}
 
 	var admin model.SysAdmin
-	data.Database.Find(&admin, id)
+	app.MySQL.Find(&admin, id)
 	if admin.Id <= 0 {
 		response.NotFound(ctx, "账号不存在")
 		return
 	}
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
-	if t := data.Database.Delete(&admin); t.RowsAffected <= 0 {
+	if t := app.MySQL.Delete(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "账号删除失败")
 		return
@@ -355,7 +355,7 @@ func DoAdminByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
+	if _, err := app.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 		tx.Rollback()
 		response.Fail(ctx, "账号删除失败")
 		return
@@ -368,14 +368,14 @@ func DoAdminByDelete(ctx *gin.Context) {
 
 func DoAdminByEnable(ctx *gin.Context) {
 
-	var request management.DoAdminByEnable
+	var request manage.DoAdminByEnable
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var admin model.SysAdmin
-	data.Database.Find(&admin, request.Id)
+	app.MySQL.Find(&admin, request.Id)
 	if admin.Id <= 0 {
 		response.NotFound(ctx, "账号不存在")
 		return
@@ -383,16 +383,16 @@ func DoAdminByEnable(ctx *gin.Context) {
 
 	admin.IsEnable = request.IsEnable
 
-	tx := data.Database.Begin()
+	tx := app.MySQL.Begin()
 
-	if t := data.Database.Save(&admin); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "启禁失败")
 		return
 	}
 
 	if request.IsEnable == constant.IsEnableNo {
-		if _, err := authorize.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
+		if _, err := app.Casbin.DeleteRolesForUser(authorize.NameByAdmin(admin.Id)); err != nil {
 			tx.Rollback()
 			response.Fail(ctx, "启禁失败")
 			return
@@ -404,7 +404,7 @@ func DoAdminByEnable(ctx *gin.Context) {
 			for _, item := range admin.BindRoles {
 				items = append(items, authorize.NameByRole(item.RoleId))
 			}
-			if _, err := authorize.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
+			if _, err := app.Casbin.AddRolesForUser(authorize.NameByAdmin(admin.Id), items); err != nil {
 				tx.Rollback()
 				response.Fail(ctx, "启禁失败")
 				return

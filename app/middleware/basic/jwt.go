@@ -7,8 +7,7 @@ import (
 	"saas/app/constant"
 	"saas/app/service/basic"
 	"saas/app/service/helper"
-	"saas/kernel/config"
-	"saas/kernel/data"
+	"saas/kernel/app"
 )
 
 func JwtParseMiddleware() gin.HandlerFunc {
@@ -19,7 +18,7 @@ func JwtParseMiddleware() gin.HandlerFunc {
 			var claims jwt.RegisteredClaims
 
 			_, err := jwt.ParseWithClaims(authorization, &claims, func(token *jwt.Token) (any, error) {
-				return []byte(config.Values.Jwt.Secret), nil
+				return []byte(app.Cfg.Jwt.Secret), nil
 			})
 
 			valid, _ := err.(*jwt.ValidationError)
@@ -29,7 +28,7 @@ func JwtParseMiddleware() gin.HandlerFunc {
 				if ok := claims.VerifyNotBefore(now.Carbon2Time(), false); ok {
 					if ok = claims.VerifyExpiresAt(now.Carbon2Time(), true); ok { //	生效的授权令牌操作
 						set(ctx, claims)
-					} else if ok = claims.VerifyExpiresAt(now.SubHours(config.Values.Jwt.Lifetime).Carbon2Time(), true); ok { //	失效的授权令牌，重新发放
+					} else if ok = claims.VerifyExpiresAt(now.SubHours(app.Cfg.Jwt.Lifetime).Carbon2Time(), true); ok { //	失效的授权令牌，重新发放
 						refresh(ctx, claims)
 					}
 				}
@@ -47,7 +46,7 @@ func set(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
 func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
-	cache, _ := data.Redis.HGetAll(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", claims.ID)).Result()
+	cache, _ := app.Redis.HGetAll(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", claims.ID)).Result()
 
 	now := carbon.Now()
 
@@ -58,19 +57,19 @@ func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
 		claims.NotBefore = jwt.NewNumericDate(now.Carbon2Time())
 		claims.IssuedAt = jwt.NewNumericDate(now.Carbon2Time())
-		claims.ExpiresAt = jwt.NewNumericDate(now.AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
+		claims.ExpiresAt = jwt.NewNumericDate(now.AddHours(app.Cfg.Jwt.Lifetime).Carbon2Time())
 		claims.ID = helper.JwtToken(claims.Subject)
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-		if signed, err := token.SignedString([]byte(config.Values.Jwt.Secret)); err == nil {
+		if signed, err := token.SignedString([]byte(app.Cfg.Jwt.Secret)); err == nil {
 
 			set(ctx, claims)
 
 			ctx.Header(constant.JwtAuthorization, signed)
 
-			if affected, err := data.Redis.HSet(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), "token", signed, "created_at", now.ToDateTimeString()).Result(); err == nil && affected > 0 {
-				data.Redis.ExpireAt(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), carbon.Time2Carbon(expires.Time).AddHours(config.Values.Jwt.Lifetime).Carbon2Time())
+			if affected, err := app.Redis.HSet(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), "token", signed, "created_at", now.ToDateTimeString()).Result(); err == nil && affected > 0 {
+				app.Redis.ExpireAt(ctx, basic.Blacklist(constant.ContextAdmin, "refresh", id), carbon.Time2Carbon(expires.Time).AddHours(app.Cfg.Jwt.Lifetime).Carbon2Time())
 			}
 		}
 
@@ -78,7 +77,7 @@ func refresh(ctx *gin.Context, claims jwt.RegisteredClaims) {
 
 		diff := now.DiffAbsInSeconds(carbon.Parse(cache["created_at"]))
 
-		if diff <= config.Values.Jwt.Leeway {
+		if diff <= app.Cfg.Jwt.Leeway {
 			ctx.Header(constant.JwtAuthorization, cache["token"])
 		}
 	}

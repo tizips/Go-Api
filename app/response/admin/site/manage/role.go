@@ -1,4 +1,4 @@
-package management
+package manage
 
 type ToRoleByPaginate struct {
 	Id          int     `json:"id"`

@@ -5,16 +5,9 @@ import (
 	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"os"
-	"saas/kernel/config"
+	"saas/kernel/app"
 	"time"
 )
-
-var Logger struct {
-	Api       *logrus.Logger
-	SQL       *logrus.Logger
-	Exception *logrus.Logger
-	Amqp      *logrus.Logger
-}
 
 func InitLogger() {
 
@@ -59,10 +52,10 @@ func api() {
 		rotatelogs.WithRotationTime(time.Hour*24),
 	)
 
-	Logger.Api = logrus.New()
+	app.Logger.Api = logrus.New()
 
-	Logger.Api.SetFormatter(&logrus.JSONFormatter{})
-	Logger.Api.SetOutput(writer)
+	app.Logger.Api.SetFormatter(&logrus.JSONFormatter{})
+	app.Logger.Api.SetOutput(writer)
 }
 
 func sql() {
@@ -83,12 +76,12 @@ func sql() {
 		rotatelogs.WithRotationTime(time.Hour*24),
 	)
 
-	Logger.SQL = logrus.New()
+	app.Logger.SQL = logrus.New()
 
-	Logger.SQL.SetFormatter(&logrus.JSONFormatter{})
-	Logger.SQL.Hooks = make(logrus.LevelHooks)
-	Logger.SQL.ExitFunc = os.Exit
-	Logger.SQL.SetOutput(writer)
+	app.Logger.SQL.SetFormatter(&logrus.JSONFormatter{})
+	app.Logger.SQL.Hooks = make(logrus.LevelHooks)
+	app.Logger.SQL.ExitFunc = os.Exit
+	app.Logger.SQL.SetOutput(writer)
 
 }
 
@@ -110,12 +103,12 @@ func exception() {
 		rotatelogs.WithRotationTime(time.Hour*24),
 	)
 
-	Logger.Exception = logrus.New()
+	app.Logger.Exception = logrus.New()
 
-	Logger.Exception.SetFormatter(&logrus.JSONFormatter{})
-	Logger.Exception.Hooks = make(logrus.LevelHooks)
-	Logger.Exception.ExitFunc = os.Exit
-	Logger.Exception.SetOutput(writer)
+	app.Logger.Exception.SetFormatter(&logrus.JSONFormatter{})
+	app.Logger.Exception.Hooks = make(logrus.LevelHooks)
+	app.Logger.Exception.ExitFunc = os.Exit
+	app.Logger.Exception.SetOutput(writer)
 
 }
 
@@ -137,18 +130,18 @@ func amqp() {
 		rotatelogs.WithRotationTime(time.Hour*24),
 	)
 
-	Logger.Amqp = logrus.New()
+	app.Logger.Amqp = logrus.New()
 
-	Logger.Amqp.SetFormatter(&logrus.JSONFormatter{})
-	Logger.Amqp.Hooks = make(logrus.LevelHooks)
-	Logger.Amqp.ExitFunc = os.Exit
-	Logger.Amqp.SetOutput(writer)
+	app.Logger.Amqp.SetFormatter(&logrus.JSONFormatter{})
+	app.Logger.Amqp.Hooks = make(logrus.LevelHooks)
+	app.Logger.Amqp.ExitFunc = os.Exit
+	app.Logger.Amqp.SetOutput(writer)
 
 }
 
 func path(filename string) string {
 
-	filepath := fmt.Sprintf("%s/logs", config.Application.Runtime)
+	filepath := fmt.Sprintf("%s/logs", app.Dir.Runtime)
 
 	if filename != "" {
 		filepath += "/" + filename + ".log"

@@ -8,8 +8,8 @@ import (
 	"saas/app/model"
 	accountForm "saas/app/request/admin/basic"
 	"saas/app/response/admin/basic"
+	"saas/kernel/app"
 	"saas/kernel/authorize"
-	"saas/kernel/data"
 	"saas/kernel/response"
 )
 
@@ -36,10 +36,10 @@ func ToAccountByModule(ctx *gin.Context) {
 
 	var modules []model.SysModule
 
-	tx := data.Database.
+	tx := app.MySQL.
 		Where("`is_enable` = ?", constant.IsEnableYes)
 
-	tc := data.Database.
+	tc := app.MySQL.
 		Select("1").
 		Model(model.SysPermission{}).
 		Where(fmt.Sprintf("`%s`.`id`=`%s`.`module_id`", model.TableSysModule, model.TableSysPermission))
@@ -80,7 +80,7 @@ func ToAccountByPermission(ctx *gin.Context) {
 
 	var permissions []model.SysPermission
 
-	tx := data.Database.
+	tx := app.MySQL.
 		Where("`module_id` = ? and `method` <> ? and `path` <> ?", request.Module, "", "")
 
 	if !authorize.Root(authorize.Id(ctx)) {
@@ -118,7 +118,7 @@ func DoAccountByUpdate(ctx *gin.Context) {
 		admin.Password = string(password)
 	}
 
-	if t := data.Database.Save(&admin); t.RowsAffected <= 0 {
+	if t := app.MySQL.Save(&admin); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
