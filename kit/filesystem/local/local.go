@@ -1,7 +1,7 @@
 package local
 
 import (
-	"saas/kit/interface"
+	_interface "saas/kit/interface"
 )
 
 type Local struct {
@@ -10,7 +10,7 @@ type Local struct {
 	prefix string
 }
 
-func New() _interface.FilesystemInterface {
+func New() *Local {
 	return new(Local)
 }
 

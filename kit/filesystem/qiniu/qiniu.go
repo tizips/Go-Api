@@ -17,15 +17,15 @@ type Qiniu struct {
 	redis *redis.Client
 }
 
-func New() _interface.FilesystemInterface {
+func New() *Qiniu {
 
-	qn := Qiniu{
+	qn := &Qiniu{
 		ctx:   context.Background(),
 		key:   fmt.Sprintf("%s:token:qiniu:%s", app.Cfg.Server.Name, app.Cfg.File.Qiniu.Access),
 		redis: app.Redis,
 	}
 
-	return &qn
+	return qn
 }
 
 func (that *Qiniu) Upload() _interface.FilesystemInterface {
