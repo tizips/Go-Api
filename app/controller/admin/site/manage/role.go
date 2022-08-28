@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"saas/app/model"
 	"saas/app/request/admin/site/manage"
-	authResponse "saas/app/response/admin/site/manage"
+	res "saas/app/response/admin/site/manage"
 	"saas/kernel/app"
 	"saas/kernel/authorize"
 	"saas/kernel/response"
@@ -14,6 +14,7 @@ import (
 func DoRoleByCreate(ctx *gin.Context) {
 
 	var request manage.DoRoleByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -36,40 +37,54 @@ func DoRoleByCreate(ctx *gin.Context) {
 	}
 
 	if len(modules) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children3) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`id` in (?) and `method`<>? and `path`<>?", children3, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children2) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children1) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 
 	var temp = make(map[int]int, len(permissionsIds))
+
 	for _, item := range permissionsIds {
 		temp[item] = item
 	}
 
 	var bind []int
+
 	for _, item := range temp {
 		bind = append(bind, item)
 	}
@@ -108,16 +123,16 @@ func DoRoleByCreate(ctx *gin.Context) {
 	}
 
 	var permissions []model.SysRoleBindPermission
+
 	tx.
-		Preload("Permission",
-			app.MySQL.
-				Where("`method`<>? and `path`<>?", "", ""),
-		).
-		Where("`role_id` = ?", role.Id).
+		Preload("Permission", app.MySQL.Where("`method`<>? and `path`<>?", "", "")).
+		Where("`role_id`=?", role.Id).
 		Find(&permissions)
 
 	if len(permissions) > 0 {
+
 		var items = make([][]string, len(permissions))
+
 		for idx, item := range permissions {
 			items[idx] = []string{item.Permission.Method, item.Permission.Path}
 		}
@@ -137,6 +152,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 func DoRoleByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
+
 	if id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
@@ -148,6 +164,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	var request manage.DoRoleByUpdate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -155,8 +172,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	var role model.SysRole
 
-	app.MySQL.Find(&role, id)
-	if role.Id <= 0 {
+	if app.MySQL.Find(&role, id); role.Id <= 0 {
 		response.NotFound(ctx, "角色不存在")
 		return
 	}
@@ -178,40 +194,54 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	if len(modules) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children3) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`id` in (?) and `method`<>? and `path`<>?", children3, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children2) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 	if len(children1) > 0 {
+
 		var permissions []model.SysPermission
-		app.MySQL.Where("`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "").Find(&permissions)
+
+		app.MySQL.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
+
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
 		}
 	}
 
 	var temp = make(map[int]int, len(permissionsIds))
+
 	for _, item := range permissionsIds {
 		temp[item] = item
 	}
 
 	var bind []int
+
 	for _, item := range temp {
 		bind = append(bind, item)
 	}
@@ -224,20 +254,24 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	role.Name = request.Name
 	role.Summary = request.Summary
 
-	app.MySQL.Where("`role_id`=?", role.Id).Find(&role.BindPermissions)
+	app.MySQL.Find(&role.BindPermissions, "`role_id`=?", role.Id)
 
 	var creates []model.SysRoleBindPermission
 	var deletes []int
 
 	if len(bind) > 0 {
+
 		for _, item := range bind {
+
 			mark := true
+
 			for _, value := range role.BindPermissions {
 				if item == value.PermissionId {
 					mark = false
 					break
 				}
 			}
+
 			if mark {
 				creates = append(creates, model.SysRoleBindPermission{
 					RoleId:       role.Id,
@@ -245,14 +279,18 @@ func DoRoleByUpdate(ctx *gin.Context) {
 				})
 			}
 		}
+
 		for _, item := range role.BindPermissions {
+
 			mark := true
+
 			for _, value := range bind {
 				if item.PermissionId == value {
 					mark = false
 					break
 				}
 			}
+
 			if mark {
 				deletes = append(deletes, item.Id)
 			}
@@ -276,11 +314,15 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		}
 
 		var ids []int
+
 		for _, item := range creates {
 			ids = append(ids, item.PermissionId)
 		}
+
 		var permissions []model.SysPermission
+
 		tx.Where("method<>? and path<>?", "", "").Find(&permissions, ids)
+
 		if len(permissions) > 0 {
 			var items [][]string
 			for _, item := range permissions {
@@ -295,8 +337,8 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	if len(deletes) > 0 {
-		var b model.SysRoleBindPermission
-		if t := tx.Where("`role_id`=?", role.Id).Delete(&b, deletes); t.RowsAffected <= 0 {
+
+		if t := tx.Where("`role_id`=?", role.Id).Delete(&model.SysRoleBindPermission{}, deletes); t.RowsAffected <= 0 {
 			tx.Rollback()
 			response.Fail(ctx, "修改失败")
 			return
@@ -312,17 +354,17 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	}
 
 	if len(creates) > 0 || len(deletes) > 0 {
+
 		var permissions []model.SysRoleBindPermission
+
 		tx.
-			Preload("Permission",
-				app.MySQL.
-					Where("method <> ? and path <> ?", "", ""),
-			).
-			Where("`role_id` = ?", role.Id).
-			Find(&permissions)
+			Preload("Permission", app.MySQL.Where("method <> ? and path <> ?", "", "")).
+			Find(&permissions, "`role_id`=?", role.Id)
 
 		if len(permissions) > 0 {
+
 			var items = make([][]string, len(permissions))
+
 			for idx, item := range permissions {
 				items[idx] = []string{item.Permission.Method, item.Permission.Path}
 			}
@@ -343,6 +385,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 func DoRoleByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
+
 	if id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
@@ -354,8 +397,8 @@ func DoRoleByDelete(ctx *gin.Context) {
 	}
 
 	var role model.SysRole
-	app.MySQL.Find(&role, id)
-	if role.Id <= 0 {
+
+	if app.MySQL.Find(&role, id); role.Id <= 0 {
 		response.NotFound(ctx, "角色不存在")
 		return
 	}
@@ -368,9 +411,9 @@ func DoRoleByDelete(ctx *gin.Context) {
 		return
 	}
 
-	bind := model.SysRoleBindPermission{RoleId: role.Id}
+	//bind := model.SysRoleBindPermission{RoleId: role.Id}
 
-	if t := tx.Where("`role_id`=?", role.Id).Delete(&bind); t.RowsAffected <= 0 {
+	if t := tx.Delete(&model.SysRoleBindPermission{}, "`role_id`=?", role.Id); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "删除失败")
 		return
@@ -390,6 +433,7 @@ func DoRoleByDelete(ctx *gin.Context) {
 func ToRoleByPaginate(ctx *gin.Context) {
 
 	var request manage.ToRoleByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -397,10 +441,10 @@ func ToRoleByPaginate(ctx *gin.Context) {
 
 	tx := app.MySQL.Where("`id`<>?", authorize.ROOT)
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToRoleByPaginate]{
 		Page: request.GetPage(),
 		Size: request.GetSize(),
-		Data: make([]any, 0),
+		Data: make([]res.ToRoleByPaginate, 0),
 	}
 
 	tc := tx
@@ -413,11 +457,15 @@ func ToRoleByPaginate(ctx *gin.Context) {
 
 		var roles []model.SysRole
 
-		tx.Preload("BindPermissions.Permission").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&roles)
+		tx.
+			Preload("BindPermissions.Permission").
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
+			Find(&roles)
 
 		for _, item := range roles {
 
-			items := authResponse.ToRoleByPaginate{
+			items := res.ToRoleByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				Summary:   item.Summary,
@@ -435,7 +483,7 @@ func ToRoleByPaginate(ctx *gin.Context) {
 	response.SuccessByPaginate(ctx, responses)
 }
 
-func ToRoleByEnable(ctx *gin.Context) {
+func ToRoleByOnline(ctx *gin.Context) {
 
 	var roles []model.SysRole
 
@@ -447,14 +495,14 @@ func ToRoleByEnable(ctx *gin.Context) {
 
 	tx.Find(&roles)
 
-	responses := make([]any, 0)
+	responses := make([]res.ToRoleByOnline, 0)
 
 	for _, item := range roles {
-		responses = append(responses, authResponse.ToRoleByEnable{
+		responses = append(responses, res.ToRoleByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

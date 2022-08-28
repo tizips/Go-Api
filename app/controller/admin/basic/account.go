@@ -6,8 +6,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
 	"saas/app/model"
-	accountForm "saas/app/request/admin/basic"
-	"saas/app/response/admin/basic"
+	"saas/app/request/admin/basic"
+	res "saas/app/response/admin/basic"
 	"saas/kernel/app"
 	"saas/kernel/authorize"
 	"saas/kernel/response"
@@ -22,17 +22,19 @@ func ToAccountByInformation(ctx *gin.Context) {
 		return
 	}
 
-	response.SuccessByData(ctx, basic.ToAccountByInformation{
+	responses := res.ToAccountByInformation{
 		Username: admin.Username,
 		Nickname: admin.Nickname,
 		Avatar:   admin.Avatar,
 		Mobile:   admin.Mobile,
-	})
+	}
+
+	response.SuccessByData(ctx, responses)
 }
 
 func ToAccountByModule(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToAccountByModule, 0)
 
 	var modules []model.SysModule
 
@@ -57,26 +59,26 @@ func ToAccountByModule(ctx *gin.Context) {
 		Find(&modules)
 
 	for _, item := range modules {
-		responses = append(responses, basic.ToAccountByModule{
+		responses = append(responses, res.ToAccountByModule{
 			Id:   item.Id,
 			Slug: item.Slug,
 			Name: item.Name,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func ToAccountByPermission(ctx *gin.Context) {
 
-	var request accountForm.ToAccountByPermission
+	var request basic.ToAccountByPermission
 
 	if err := ctx.BindQuery(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	var responses = make([]any, 0)
+	var responses = make([]string, 0)
 
 	var permissions []model.SysPermission
 
@@ -97,12 +99,13 @@ func ToAccountByPermission(ctx *gin.Context) {
 		responses = append(responses, item.Slug)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func DoAccountByUpdate(ctx *gin.Context) {
 
-	var request accountForm.DoAccountByUpdate
+	var request basic.DoAccountByUpdate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return

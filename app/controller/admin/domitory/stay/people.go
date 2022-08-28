@@ -11,7 +11,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/stay"
-	stayResponse "saas/app/response/admin/dormitory/stay"
+	res "saas/app/response/admin/dormitory/stay"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"time"
@@ -20,6 +20,7 @@ import (
 func ToPeopleByPaginate(ctx *gin.Context) {
 
 	var request stay.ToPeopleByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -63,11 +64,11 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 
 	tc := tx
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToPeopleByPaginate]{
 		Total: 0,
 		Page:  request.GetPage(),
 		Size:  request.GetSize(),
-		Data:  make([]any, 0),
+		Data:  make([]res.ToPeopleByPaginate, 0),
 	}
 
 	tc.Model(&model.DorPeople{}).Count(&responses.Total)
@@ -92,7 +93,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 
 		for _, item := range peoples {
 
-			results := stayResponse.ToPeopleByPaginate{
+			results := res.ToPeopleByPaginate{
 				Id:        item.Id,
 				Category:  item.Category.Name,
 				Building:  item.Building.Name,
@@ -106,19 +107,25 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 				Remark:    item.Remark,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
 			}
+
 			if item.End != nil {
 				results.End = item.End.ToDateTimeString()
 			}
+
 			if item.Staff != nil && item.Staff.Id > 0 {
 				results.Staff = item.Staff.Status
 				results.Titles = item.Staff.Title
 			}
+
 			if item.Certification != nil && item.Certification.Id > 0 {
-				certification := stayResponse.ToPeopleByPaginateOfCertification{
+
+				certification := res.ToPeopleByPaginateOfCertification{
 					No: item.Certification.No,
 				}
+
 				results.Certification = certification
 			}
+
 			responses.Data = append(responses.Data, results)
 		}
 	}
@@ -129,43 +136,47 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 func DoPeopleByCreate(ctx *gin.Context) {
 
 	var request stay.DoPeopleByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var bed model.DorBed
-	app.MySQL.Preload(clause.Associations).Where("`is_enable`=?", constant.IsEnableYes).Find(&bed, request.Bed)
-	if bed.Id <= 0 {
+
+	if app.MySQL.Preload(clause.Associations).Find(&bed, "`id`=? and `is_enable`=?", request.Bed, constant.IsEnableYes); bed.Id <= 0 {
 		response.NotFound(ctx, "床位不存在")
 		return
 	}
 
 	var category model.DorStayCategory
-	app.MySQL.Where("is_enable", constant.IsEnableYes).Find(&category, request.Category)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, "`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes); category.Id <= 0 {
 		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	var count int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
+
 	if count > 0 {
 		response.Fail(ctx, "该手机号已办理了入住，无法重复办理")
 		return
 	}
 
 	var member model.MemMember
-	app.MySQL.Where("`mobile`=?", request.Mobile).Find(&member)
-	if member.Id == "" {
 
-		lock, err := redislock.New(app.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, nil)
+	if app.MySQL.Find(&member, "`mobile`=?", request.Mobile); member.Id == "" {
+
+		obtain, err := redislock.New(app.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, &redislock.Options{RetryStrategy: redislock.LinearBackoff(time.Microsecond * 3)})
+
 		if err != nil {
 			response.Fail(ctx, "办理失败")
 			return
 		}
 
-		defer lock.Release(ctx)
+		defer obtain.Release(ctx)
 
 		member = model.MemMember{
 			Id:       app.Snowflake.Generate().String(),
@@ -208,11 +219,12 @@ func DoPeopleByCreate(ctx *gin.Context) {
 	}
 
 	var masterId int = 0
+
 	masterName := member.Name
 
 	var master model.DorPeople
-	tx.Preload("Master.Member").Where("`bed_id`=? and `master_id`<>? and `status`=?", people.BedId, 0, model.DorPeopleStatusLive).Find(&master)
-	if master.MasterId > 0 {
+
+	if tx.Preload("Master.Member").Find(&master, "`bed_id`=? and `master_id`<>? and `status`=?", people.BedId, 0, model.DorPeopleStatusLive); master.MasterId > 0 {
 		masterId = master.MasterId
 		masterName = master.Member.Name
 	} else {

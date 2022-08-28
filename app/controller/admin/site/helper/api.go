@@ -3,8 +3,8 @@ package helper
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/model"
-	helperForm "saas/app/request/admin/site/helper"
-	"saas/app/response/admin/site/helper"
+	"saas/app/request/admin/site/helper"
+	res "saas/app/response/admin/site/helper"
 	"saas/kernel/api"
 	"saas/kernel/app"
 	"saas/kernel/response"
@@ -13,29 +13,30 @@ import (
 
 func ToApiByList(ctx *gin.Context) {
 
-	var request helperForm.ToApiByList
+	var request helper.ToApiByList
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
-	app.MySQL.Find(&module, request.Module)
-	if module.Id <= 0 {
+
+	if app.MySQL.Find(&module, request.Module); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
 
 	routes := app.Engine.Routes()
 
-	var responses = make([]any, 0)
+	var responses = make([]res.ToApiByList, 0)
 
 	var permissions []model.SysPermission
-	app.MySQL.
-		Where("`module_id` = ? and `method` <> ? and `path` <> ?", module.Id, "", "").
-		Find(&permissions)
+
+	app.MySQL.Find(&permissions, "`module_id`=? and `method`<>? and `path`<>?", module.Id, "", "")
 
 	var permissionsCache = make(map[string]bool, 0)
+
 	if len(permissions) > 0 {
 		for _, item := range permissions {
 			permissionsCache[api.OmitKey(item.Method, item.Path)] = true
@@ -59,7 +60,7 @@ func ToApiByList(ctx *gin.Context) {
 			}
 
 			if mark {
-				responses = append(responses, helper.ToApiByList{
+				responses = append(responses, res.ToApiByList{
 					Method: item.Method,
 					Path:   item.Path,
 				})
@@ -67,5 +68,5 @@ func ToApiByList(ctx *gin.Context) {
 		}
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

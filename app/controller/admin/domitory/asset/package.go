@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
-	assetResponse "saas/app/response/admin/dormitory/asset"
+	res "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -13,6 +13,7 @@ import (
 func DoPackageByCreate(ctx *gin.Context) {
 
 	var request asset.DoPackageByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -25,6 +26,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorDevice
+
 	app.MySQL.Find(&devices, "`id` in (?)", deviceIds)
 
 	for _, item := range request.Devices {
@@ -80,12 +82,14 @@ func DoPackageByCreate(ctx *gin.Context) {
 func DoPackageByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request asset.DoPackageByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -105,7 +109,8 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	}
 
 	var devices []model.DorDevice
-	app.MySQL.Where("id in (?)", deviceIds).Find(&devices)
+
+	app.MySQL.Find(&devices, "id in (?)", deviceIds)
 
 	for _, item := range request.Devices {
 		mark := true
@@ -126,6 +131,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	}
 
 	var creates, updates []model.DorPackageDetail
+
 	for _, item := range request.Devices {
 		mark := true
 		for _, value := range pack.Details {
@@ -147,6 +153,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	}
 
 	var deletes []int
+
 	for _, item := range pack.Details {
 		mark := true
 		for _, value := range request.Devices {
@@ -162,6 +169,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 	tx := app.MySQL.Begin()
 
 	if request.Name != pack.Name {
+
 		pack.Name = request.Name
 
 		if t := tx.Save(&pack); t.RowsAffected <= 0 {
@@ -203,6 +211,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 func DoPackageByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
@@ -223,7 +232,7 @@ func DoPackageByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if t := tx.Where("`package_id`=?", pack.Id).Delete(&model.DorPackageDetail{}); t.RowsAffected <= 0 {
+	if t := tx.Delete(&model.DorPackageDetail{}, "`package_id`=?", pack.Id); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "删除失败")
 		return
@@ -237,16 +246,17 @@ func DoPackageByDelete(ctx *gin.Context) {
 func ToPackageByPaginate(ctx *gin.Context) {
 
 	var request asset.ToPackageByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToPackageByPaginate]{
 		Total: 0,
 		Page:  request.GetPage(),
 		Size:  request.GetSize(),
-		Data:  make([]any, 0),
+		Data:  make([]res.ToPackageByPaginate, 0),
 	}
 
 	tx := app.MySQL
@@ -262,16 +272,20 @@ func ToPackageByPaginate(ctx *gin.Context) {
 
 		var packages []model.DorPackage
 
-		tx.Preload("Details.Device").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&packages)
+		tx.
+			Preload("Details.Device").
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
+			Find(&packages)
 
 		for _, item := range packages {
-			items := assetResponse.ToPackageByPaginate{
+			items := res.ToPackageByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
 			}
 			for _, value := range item.Details {
-				items.Devices = append(items.Devices, assetResponse.ToPackageByPaginateOfDevices{
+				items.Devices = append(items.Devices, res.ToPackageByPaginateOfDevices{
 					Id:       value.DeviceId,
 					Category: value.Device.CategoryId,
 					Name:     value.Device.Name,
@@ -287,18 +301,18 @@ func ToPackageByPaginate(ctx *gin.Context) {
 
 func ToPackageByOnline(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToPackageByOnline, 0)
 
 	var packages []model.DorPackage
 
 	app.MySQL.Order("`id` desc").Find(&packages)
 
 	for _, item := range packages {
-		responses = append(responses, assetResponse.ToPackageByOnline{
+		responses = append(responses, res.ToPackageByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

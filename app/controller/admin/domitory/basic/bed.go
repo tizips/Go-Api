@@ -5,7 +5,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
-	basicResponse "saas/app/response/admin/dormitory/basic"
+	res "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -14,17 +14,21 @@ import (
 func DoBedByCreate(ctx *gin.Context) {
 
 	var request basic.DoBedByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var room model.DorRoom
-	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&room, request.Room)
+
+	app.MySQL.Find(&room, "`id`=? and `is_enable`=?", request.Room, constant.IsEnableYes)
+
 	if room.Id <= 0 {
 		response.NotFound(ctx, "房间不存在")
 		return
 	}
+
 	if room.IsPublic == model.DorBedIsPublicYes {
 		response.Fail(ctx, "该房间为公共区域，无法添加")
 		return
@@ -52,20 +56,22 @@ func DoBedByCreate(ctx *gin.Context) {
 func DoBedByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request basic.DoBedByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var bed model.DorBed
-	app.MySQL.Find(&bed, id)
-	if bed.Id <= 0 {
+
+	if app.MySQL.Find(&bed, id); bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
 	}
@@ -94,20 +100,23 @@ func DoBedByUpdate(ctx *gin.Context) {
 func DoBedByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var bed model.DorBed
-	app.MySQL.Find(&bed, id)
-	if bed.Id <= 0 {
+
+	if app.MySQL.Find(&bed, id); bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该床位已有人入住，无法删除")
 		return
@@ -124,20 +133,23 @@ func DoBedByDelete(ctx *gin.Context) {
 func DoBedByEnable(ctx *gin.Context) {
 
 	var request basic.DoBedByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var bed model.DorBed
-	app.MySQL.Find(&bed, request.Id)
-	if bed.Id <= 0 {
+
+	if app.MySQL.Find(&bed, request.Id); bed.Id <= 0 {
 		response.NotFound(ctx, "未找到该床位")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`bed_id`=? and `status`=?", bed.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该床位已有人入住，无法上下架")
 		return
@@ -156,15 +168,16 @@ func DoBedByEnable(ctx *gin.Context) {
 func ToBedByPaginate(ctx *gin.Context) {
 
 	var request basic.ToBedByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToBedByPaginate]{
 		Page: request.GetPage(),
 		Size: request.GetSize(),
-		Data: make([]any, 0),
+		Data: make([]res.ToBedByPaginate, 0),
 	}
 
 	tx := app.MySQL
@@ -203,7 +216,7 @@ func ToBedByPaginate(ctx *gin.Context) {
 			Find(&beds)
 
 		for _, item := range beds {
-			responses.Data = append(responses.Data, basicResponse.ToBedByPaginate{
+			responses.Data = append(responses.Data, res.ToBedByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				Building:  item.Building.Name,
@@ -223,12 +236,13 @@ func ToBedByPaginate(ctx *gin.Context) {
 func ToBedByOnline(ctx *gin.Context) {
 
 	var request basic.ToBedByOnline
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := make([]res.ToBedByOnline, 0)
 
 	tx := app.MySQL.Where("`room_id`=? and `is_enable`=?", request.Room, constant.IsEnableYes)
 
@@ -237,10 +251,11 @@ func ToBedByOnline(ctx *gin.Context) {
 	}
 
 	var beds []model.DorBed
+
 	tx.Order("`order` asc, `id` desc").Find(&beds)
 
 	for _, item := range beds {
-		items := basicResponse.ToBedByOnline{
+		items := res.ToBedByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		}
@@ -250,5 +265,5 @@ func ToBedByOnline(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

@@ -2,11 +2,10 @@ package manage
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/site/manage"
-	authResponse "saas/app/response/admin/site/manage"
+	res "saas/app/response/admin/site/manage"
 	authService "saas/app/service/site/manage"
 	"saas/kernel/app"
 	"saas/kernel/authorize"
@@ -17,14 +16,15 @@ import (
 func DoPermissionByCreate(ctx *gin.Context) {
 
 	var request manage.DoPermissionByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var module model.SysModule
-	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
-	if module.Id <= 0 {
+
+	if app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
@@ -34,8 +34,8 @@ func DoPermissionByCreate(ctx *gin.Context) {
 	var parent model.SysPermission
 
 	if request.Parent > 0 {
-		app.MySQL.Find(&parent, request.Parent)
-		if parent.Id <= 0 {
+
+		if app.MySQL.Find(&parent, request.Parent); parent.Id <= 0 {
 			response.Fail(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
@@ -58,8 +58,11 @@ func DoPermissionByCreate(ctx *gin.Context) {
 	var permission model.SysPermission
 
 	if request.Method != "" && request.Path != "" {
+
 		var count int64
+
 		app.MySQL.Model(model.SysPermission{}).Where("`method`=? and `path`=?", request.Method, request.Path).Count(&count)
+
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
 			return
@@ -76,8 +79,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 		Path:     request.Path,
 	}
 
-	app.MySQL.Create(&permission)
-	if permission.Id <= 0 {
+	if app.MySQL.Create(&permission); permission.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -88,20 +90,22 @@ func DoPermissionByCreate(ctx *gin.Context) {
 func DoPermissionByUpdate(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
+
 	if id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
 	var request manage.DoPermissionByUpdate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var permission model.SysPermission
-	app.MySQL.Find(&permission, id)
-	if permission.Id <= 0 {
+
+	if app.MySQL.Find(&permission, id); permission.Id <= 0 {
 		response.NotFound(ctx, "权限不存在")
 		return
 	}
@@ -110,9 +114,10 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	path := permission.Path
 
 	if permission.ModuleId != request.Module {
+
 		var module model.SysModule
-		app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module)
-		if module.Id <= 0 {
+
+		if app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
 			response.NotFound(ctx, "模块不存在")
 			return
 		}
@@ -123,8 +128,8 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	var parent model.SysPermission
 
 	if request.Parent > 0 {
-		app.MySQL.Find(&parent, request.Parent)
-		if parent.Id <= 0 {
+
+		if app.MySQL.Find(&parent, request.Parent); parent.Id <= 0 {
 			response.NotFound(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
@@ -145,8 +150,11 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	}
 
 	if request.Method != "" && request.Path != "" {
+
 		var count int64
+
 		app.MySQL.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, request.Method, request.Path).Count(&count)
+
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
 			return
@@ -178,9 +186,10 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 		}
 
 		if request.Method != "" || request.Path != "" {
+
 			var bindings []model.SysRoleBindPermission
-			tx.Where("permission_id = ?", permission.Id).Find(&bindings)
-			if len(bindings) > 0 {
+
+			if tx.Find(&bindings, "`permission_id`=?", permission.Id); len(bindings) > 0 {
 				for _, item := range bindings {
 					if _, err := app.Casbin.AddPermissionForUser(authorize.NameByRole(item.RoleId), permission.Method, permission.Path); err != nil {
 						tx.Rollback()
@@ -201,14 +210,15 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 func DoPermissionByDelete(ctx *gin.Context) {
 
 	id, _ := strconv.Atoi(ctx.Param("id"))
+
 	if id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID不存在")
 		return
 	}
 
 	var permission model.SysPermission
-	app.MySQL.Find(&permission, id)
-	if permission.Id <= 0 {
+
+	if app.MySQL.Find(&permission, id); permission.Id <= 0 {
 		response.Fail(ctx, "权限不存在")
 		return
 	}
@@ -230,10 +240,11 @@ func DoPermissionByDelete(ctx *gin.Context) {
 	} else if permission.ParentI1 > 0 {
 
 		var children []model.SysPermission
-		tx.Where("`parent_i2`=? and `method`<>? and `path`<>?", permission.Id, "", "").Find(&children)
 
-		if len(children) > 0 {
-			t := tx.Where("`parent_i2`=?", permission.Id).Delete(&model.SysPermission{})
+		if tx.Find(&children, "`parent_i2`=? and `method`<>? and `path`<>?", permission.Id, "", ""); len(children) > 0 {
+
+			t := tx.Delete(&model.SysPermission{}, "`parent_i2`=?", permission.Id)
+
 			if t.RowsAffected <= 0 {
 				tx.Rollback()
 				response.Fail(ctx, "删除失败")
@@ -251,11 +262,10 @@ func DoPermissionByDelete(ctx *gin.Context) {
 	} else {
 
 		var children []model.SysPermission
-		tx.Where("`parent_i1`=? and `method`<>? and `path`<>?", permission.Id, "", "").Find(&children)
 
-		if len(children) > 0 {
-			t := tx.Where("`parent_i1`=?", permission.Id).Delete(&model.SysPermission{})
-			if t.RowsAffected <= 0 {
+		if tx.Find(&children, "`parent_i1`=? and `method`<>? and `path`<>?", permission.Id, "", ""); len(children) > 0 {
+
+			if t := tx.Delete(&model.SysPermission{}, "`parent_i1`=?", permission.Id); t.RowsAffected <= 0 {
 				tx.Rollback()
 				response.Fail(ctx, "删除失败")
 				return
@@ -279,65 +289,58 @@ func DoPermissionByDelete(ctx *gin.Context) {
 func ToPermissionByTree(ctx *gin.Context) {
 
 	var request manage.ToPermissionByTree
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := authService.TreePermission(request.Module, false, false)
 
-	results := authService.TreePermission(request.Module, false, false)
-	for _, item := range results {
-		responses = append(responses, item)
-	}
-
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData[[]res.TreePermission](ctx, responses)
 }
 
 func ToPermissionByParents(ctx *gin.Context) {
 
 	var request manage.ToPermissionByTree
+
 	if err := ctx.ShouldBind(&request); err != nil {
-		ctx.JSON(http.StatusOK, response.Responses{
-			Code:    40000,
-			Message: err.Error(),
-		})
+		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := authService.TreePermission(request.Module, true, true)
 
-	results := authService.TreePermission(request.Module, true, true)
-	for _, item := range results {
-		responses = append(responses, item)
-	}
-
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData[[]res.TreePermission](ctx, responses)
 }
 
 func ToPermissionBySelf(ctx *gin.Context) {
 
 	responses := make([]any, 0)
 
-	var results []authResponse.TreePermission
+	var results []res.TreePermission
+	var modules []res.TreePermission
 
-	var modules []authResponse.TreePermission
 	var children, children1, children2 []model.SysPermission
 
 	if authorize.Root(authorize.Id(ctx)) {
 
 		var permissions []model.SysPermission
+
 		app.MySQL.Preload("Module").Find(&permissions)
 
 		for _, item := range permissions {
+
 			mark := true
+
 			for _, value := range modules {
 				if item.Module.Id == value.Id {
 					mark = false
 				}
 			}
+
 			if mark {
-				modules = append(modules, authResponse.TreePermission{
+				modules = append(modules, res.TreePermission{
 					Id:   item.Module.Id,
 					Name: item.Module.Name,
 				})
@@ -356,10 +359,11 @@ func ToPermissionBySelf(ctx *gin.Context) {
 	}
 
 	if len(modules) > 0 && (len(children2) > 0 || len(children1) > 0 || len(children) > 0) {
+
 		for _, item := range modules {
 
 			//	处理模块一层
-			child := authResponse.TreePermission{
+			child := res.TreePermission{
 				Id:   item.Id,
 				Name: item.Name,
 			}
@@ -368,7 +372,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 				if child.Id == value.Module.Id {
 
 					//	处理第二层
-					child1 := authResponse.TreePermission{
+					child1 := res.TreePermission{
 						Id:   value.Id,
 						Name: value.Name,
 					}
@@ -377,7 +381,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 						if child1.Id == val.ParentI1 {
 
 							//	处理第三层
-							child2 := authResponse.TreePermission{
+							child2 := res.TreePermission{
 								Id:   val.Id,
 								Name: val.Name,
 							}
@@ -386,7 +390,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 								if child2.Id == v.ParentI2 {
 
 									//	处理第四层
-									child3 := authResponse.TreePermission{
+									child3 := res.TreePermission{
 										Id:   v.Id,
 										Name: v.Name,
 									}
@@ -419,5 +423,5 @@ func ToPermissionBySelf(ctx *gin.Context) {
 		}
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

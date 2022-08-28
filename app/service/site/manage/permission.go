@@ -15,10 +15,7 @@ func TreePermission(module int, parent bool, simple bool) []manage.TreePermissio
 	}
 
 	if parent {
-		tx = tx.
-			Where("`parent_i2` <= ?", 0).
-			Where("`method` = ?", "").
-			Where("`path` = ?", "")
+		tx = tx.Where("`parent_i2`<=? and `method`=? and `path`=?", 0, "", "")
 	}
 
 	var permissions []model.SysPermission
@@ -30,7 +27,7 @@ func TreePermission(module int, parent bool, simple bool) []manage.TreePermissio
 
 func HandlerTree(permissions []model.SysPermission, parent bool, simple bool) []manage.TreePermission {
 
-	var responses []manage.TreePermission
+	responses := make([]manage.TreePermission, 0)
 
 	if len(permissions) > 0 {
 

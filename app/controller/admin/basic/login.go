@@ -7,36 +7,36 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"saas/app/constant"
 	"saas/app/model"
-	basicForm "saas/app/request/admin/basic"
-	accountResponse "saas/app/response/admin/basic"
-	"saas/app/service/basic"
+	"saas/app/request/admin/basic"
+	res "saas/app/response/admin/basic"
+	basicService "saas/app/service/basic"
 	helperService "saas/app/service/helper"
 	"saas/kernel/app"
 	"saas/kernel/authorize"
-	basicResponse "saas/kernel/response"
+	"saas/kernel/response"
 	"strconv"
 )
 
 func DoLoginByAccount(ctx *gin.Context) {
 
-	var request basicForm.DoLoginByAccess
+	var request basic.DoLoginByAccess
 
 	if err := ctx.ShouldBind(&request); err != nil {
-		basicResponse.FailByRequest(ctx, err)
+		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var admin model.SysAdmin
 
-	app.MySQL.Where("`username`=? and `is_enable`=?", request.Username, constant.IsEnableYes).Find(&admin)
+	app.MySQL.Find(&admin, "`username`=? and `is_enable`=?", request.Username, constant.IsEnableYes)
 
 	if admin.Id <= 0 {
-		basicResponse.Fail(ctx, "用户名或密码错误")
+		response.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(admin.Password), []byte(request.Password)); err != nil {
-		basicResponse.Fail(ctx, "用户名或密码错误")
+		response.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
@@ -55,14 +55,16 @@ func DoLoginByAccount(ctx *gin.Context) {
 	signed, err := token.SignedString([]byte(app.Cfg.Jwt.Secret))
 
 	if err != nil {
-		basicResponse.Fail(ctx, "用户名或密码错误")
+		response.Fail(ctx, "用户名或密码错误")
 		return
 	}
 
-	basicResponse.SuccessByData(ctx, accountResponse.DoLoginByAccess{
+	responses := res.DoLoginByAccess{
 		Token:    signed,
 		ExpireAt: now.AddHours(app.Cfg.Jwt.Lifetime).Timestamp(),
-	})
+	}
+
+	response.SuccessByData(ctx, responses)
 
 }
 
@@ -74,12 +76,12 @@ func DoLogout(ctx *gin.Context) {
 
 	claims := authorize.Jwt(ctx)
 
-	ok := basic.BlackJwt(ctx, constant.ContextAdmin, *claims)
+	ok := basicService.BlackJwt(ctx, constant.ContextAdmin, *claims)
 
 	if !ok {
-		basicResponse.Fail(ctx, "退出失败，请稍后重试！")
+		response.Fail(ctx, "退出失败，请稍后重试！")
 		return
 	}
 
-	basicResponse.Success(ctx)
+	response.Success(ctx)
 }

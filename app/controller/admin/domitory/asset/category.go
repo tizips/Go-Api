@@ -5,7 +5,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
-	assetResponse "saas/app/response/admin/dormitory/asset"
+	res "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -121,14 +121,14 @@ func DoCategoryByEnable(ctx *gin.Context) {
 
 func ToCategoryByList(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToCategoryByList, 0)
 
 	var categories []model.DorAssetCategory
 
 	app.MySQL.Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
-		responses = append(responses, assetResponse.ToCategoryByList{
+		responses = append(responses, res.ToCategoryByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -137,22 +137,23 @@ func ToCategoryByList(ctx *gin.Context) {
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func ToCategoryByOnline(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToCategoryByOnline, 0)
 
 	var categories []model.DorAssetCategory
-	app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Order("`order` asc, `id` desc").Find(&categories)
+
+	app.MySQL.Order("`order` asc, `id` desc").Find(&categories, "`is_enable`=?", constant.IsEnableYes)
 
 	for _, item := range categories {
-		responses = append(responses, assetResponse.ToCategoryByOnline{
+		responses = append(responses, res.ToCategoryByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

@@ -2,11 +2,10 @@ package basic
 
 import (
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
-	basicResponse "saas/app/response/admin/dormitory/basic"
+	res "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -15,17 +14,19 @@ import (
 func DoFloorByCreate(ctx *gin.Context) {
 
 	var request basic.DoFloorByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var building model.DorBuilding
-	app.MySQL.Where("is_enable=?", constant.IsEnableYes).Find(&building, request.Building)
-	if building.Id <= 0 {
+
+	if app.MySQL.Find(&building, "`id`=? and `is_enable`=?", request.Building, constant.IsEnableYes); building.Id <= 0 {
 		response.NotFound(ctx, "楼栋不存在")
 		return
 	}
+
 	if building.IsPublic == model.DorBuildingIsPublicYes {
 		response.Fail(ctx, "该楼栋为公共区域，添加失败")
 		return
@@ -50,27 +51,32 @@ func DoFloorByCreate(ctx *gin.Context) {
 func DoFloorByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request basic.DoFloorByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var floor model.DorFloor
-	app.MySQL.Find(&floor, id)
-	if floor.Id <= 0 {
+
+	if app.MySQL.Find(&floor, id); floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
 	}
 
 	if request.Building != floor.BuildingId {
+
 		var count int64
+
 		app.MySQL.Model(model.DorBuilding{}).Where("`id`=? and `is_enable`=?", request.Building, constant.IsEnableYes).Count(&count)
+
 		if count <= 0 {
 			response.NotFound(ctx, "楼栋不存在")
 			return
@@ -80,8 +86,11 @@ func DoFloorByUpdate(ctx *gin.Context) {
 	}
 
 	if floor.IsEnable != request.IsEnable {
+
 		var peoples int64 = 0
+
 		app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 		if peoples > 0 {
 			response.Fail(ctx, "该楼层已有人入住，无法上下架")
 			return
@@ -103,25 +112,25 @@ func DoFloorByUpdate(ctx *gin.Context) {
 func DoFloorByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var floor model.DorFloor
-	app.MySQL.Find(&floor, id)
-	if floor.Id <= 0 {
+
+	if app.MySQL.Find(&floor, id); floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "该楼层已有人入住，无法删除",
-		})
+		response.Fail(ctx, "该楼层已有人入住，无法删除")
 		return
 	}
 
@@ -133,13 +142,13 @@ func DoFloorByDelete(ctx *gin.Context) {
 		return
 	}
 
-	if t := tx.Where("`floor_id`=?", floor.Id).Delete(&model.DorRoom{}); t.Error != nil {
+	if t := tx.Delete(&model.DorRoom{}, "`floor_id`=?", floor.Id); t.Error != nil {
 		tx.Rollback()
 		response.Fail(ctx, "删除失败")
 		return
 	}
 
-	if t := tx.Where("`floor_id`=?", floor.Id).Delete(&model.DorBed{}); t.Error != nil {
+	if t := tx.Delete(&model.DorBed{}, "`floor_id`=?", floor.Id); t.Error != nil {
 		tx.Rollback()
 		response.Fail(ctx, "删除失败")
 		return
@@ -153,20 +162,23 @@ func DoFloorByDelete(ctx *gin.Context) {
 func DoFloorByEnable(ctx *gin.Context) {
 
 	var request basic.DoFloorByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var floor model.DorFloor
-	app.MySQL.Find(&floor, request.Id)
-	if floor.Id <= 0 {
+
+	if app.MySQL.Find(&floor, request.Id); floor.Id <= 0 {
 		response.NotFound(ctx, "未找到该楼层")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`floor_id`=? and `status`=?", floor.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该楼层已有人入住，无法上下架")
 		return
@@ -185,12 +197,13 @@ func DoFloorByEnable(ctx *gin.Context) {
 func ToFloorByList(ctx *gin.Context) {
 
 	var request basic.ToFloorByList
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := make([]res.ToFloorByList, 0)
 
 	var floors []model.DorFloor
 	app.MySQL.
@@ -200,7 +213,7 @@ func ToFloorByList(ctx *gin.Context) {
 		Find(&floors)
 
 	for _, item := range floors {
-		responses = append(responses, basicResponse.ToFloorByList{
+		responses = append(responses, res.ToFloorByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Building:  item.Building.Name,
@@ -211,18 +224,19 @@ func ToFloorByList(ctx *gin.Context) {
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func ToFloorByOnline(ctx *gin.Context) {
 
 	var request basic.ToFloorByOnline
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := make([]res.ToFloorByOnline, 0)
 
 	tx := app.MySQL.Where("`building_id`=? and `is_enable`=?", request.Building, constant.IsEnableYes)
 
@@ -231,10 +245,11 @@ func ToFloorByOnline(ctx *gin.Context) {
 	}
 
 	var floors []model.DorFloor
+
 	tx.Order("`order` asc, `id` desc").Order("`id` desc").Find(&floors)
 
 	for _, item := range floors {
-		items := basicResponse.ToFloorByOnline{
+		items := res.ToFloorByOnline{
 			Id:       item.Id,
 			Name:     item.Name,
 			IsPublic: item.IsPublic,
@@ -245,5 +260,5 @@ func ToFloorByOnline(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

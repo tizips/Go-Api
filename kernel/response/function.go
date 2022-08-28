@@ -55,7 +55,7 @@ func Success(ctx *gin.Context) {
 	})
 }
 
-func SuccessByData(ctx *gin.Context, data any) {
+func SuccessByData[T any](ctx *gin.Context, data T) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    20000,
 		Message: "Success",
@@ -63,15 +63,7 @@ func SuccessByData(ctx *gin.Context, data any) {
 	})
 }
 
-func SuccessByList(ctx *gin.Context, list []any) {
-	ctx.JSON(http.StatusOK, Responses{
-		Code:    20000,
-		Message: "Success",
-		Data:    list,
-	})
-}
-
-func SuccessByPaginate(ctx *gin.Context, data Paginate) {
+func SuccessByPaginate[T any](ctx *gin.Context, data Paginate[T]) {
 	ctx.JSON(http.StatusOK, Response{
 		Code:    20000,
 		Message: "Success",

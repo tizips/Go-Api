@@ -8,7 +8,7 @@ type ToRoleByPaginate struct {
 	CreatedAt   string  `json:"created_at"`
 }
 
-type ToRoleByEnable struct {
+type ToRoleByOnline struct {
 	Id   int    `json:"id"`
 	Name string `json:"name"`
 }

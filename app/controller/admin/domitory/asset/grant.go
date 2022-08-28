@@ -5,10 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-module/carbon/v2"
 	"gorm.io/gorm"
-	"net/http"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
-	assetResponse "saas/app/response/admin/dormitory/asset"
+	res "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/app"
 	"saas/kernel/response"
 )
@@ -16,6 +15,7 @@ import (
 func DoGrantByCreate(ctx *gin.Context) {
 
 	var request asset.DoGrantByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -53,12 +53,15 @@ func DoGrantByCreate(ctx *gin.Context) {
 		}
 
 		tx := app.MySQL
+
 		if len(typeIds) > 0 {
 			tx = tx.Where("`type_id` in (?)", typeIds)
 		}
+
 		if len(ids) > 0 {
 			tx = tx.Or("id IN (?)", ids)
 		}
+
 		app.MySQL.Where(tx).Find(&typeBeds)
 
 		if len(typeBeds) <= 0 {
@@ -445,10 +448,7 @@ func DoGrantByRevoke(ctx *gin.Context) {
 	tx := app.MySQL
 
 	if t := tx.Save(&grant); t.RowsAffected <= 0 {
-		ctx.JSON(http.StatusOK, response.Response{
-			Code:    40400,
-			Message: "回撤失败",
-		})
+		response.Fail(ctx, "回撤失败")
 		return
 	}
 
@@ -457,17 +457,17 @@ func DoGrantByRevoke(ctx *gin.Context) {
 		return
 	}
 
-	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantPosition{}); t.RowsAffected <= 0 {
+	if t := tx.Delete(&model.DorGrantPosition{}, "grant_id=?", grant.Id); t.RowsAffected <= 0 {
 		response.Fail(ctx, "回撤失败")
 		return
 	}
 
-	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDevice{}); t.RowsAffected <= 0 {
+	if t := tx.Delete(&model.DorGrantDevice{}, "grant_id=?", grant.Id); t.RowsAffected <= 0 {
 		response.Fail(ctx, "回撤失败")
 		return
 	}
 
-	if t := tx.Where("grant_id=?", grant.Id).Delete(&model.DorGrantDetail{}); t.RowsAffected <= 0 {
+	if t := tx.Delete(&model.DorGrantDetail{}, "grant_id=?", grant.Id); t.RowsAffected <= 0 {
 		response.Fail(ctx, "回撤失败")
 		return
 	}
@@ -486,10 +486,10 @@ func ToGrantByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToGrantByPaginate]{
 		Page: request.GetPage(),
 		Size: request.GetSize(),
-		Data: make([]any, 0),
+		Data: make([]res.ToGrantByPaginate, 0),
 	}
 
 	tx := app.MySQL
@@ -499,7 +499,9 @@ func ToGrantByPaginate(ctx *gin.Context) {
 	tc.Model(model.DorGrant{}).Count(&responses.Total)
 
 	if responses.Total > 0 {
+
 		var grants []model.DorGrant
+
 		tx.
 			Preload("Package", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 			Preload("BindDevices", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
@@ -510,7 +512,7 @@ func ToGrantByPaginate(ctx *gin.Context) {
 			Find(&grants)
 
 		for _, item := range grants {
-			items := assetResponse.ToGrantByPaginate{
+			items := res.ToGrantByPaginate{
 				Id:        item.Id,
 				Remark:    item.Remark,
 				CreatedAt: item.CreatedAt.ToDateTimeString(),
@@ -519,7 +521,7 @@ func ToGrantByPaginate(ctx *gin.Context) {
 				items.Package = item.Package.Name
 			}
 			for _, value := range item.BindDevices {
-				items.Devices = append(items.Devices, assetResponse.ToGrantByPaginateOfDevice{
+				items.Devices = append(items.Devices, res.ToGrantByPaginateOfDevice{
 					Name:   value.Device.Name,
 					Number: value.Number,
 				})

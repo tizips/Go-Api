@@ -3,9 +3,9 @@ package basic
 import (
 	"github.com/gin-gonic/gin"
 	"saas/app/request/admin/basic"
-	basicResponse "saas/app/response/admin/basic"
-	"saas/app/service/helper"
+	res "saas/app/response/admin/basic"
 	"saas/kernel/response"
+	"saas/kit/filesystem"
 )
 
 func DoUploadBySimple(ctx *gin.Context) {
@@ -24,16 +24,20 @@ func DoUploadBySimple(ctx *gin.Context) {
 		return
 	}
 
-	result, err := helper.DoUploadBySimple(ctx, "/cmd/"+request.Dir, file)
+	storage := filesystem.New().Upload()
 
-	if err != nil || result == nil {
+	uri, name, err := storage.Save(file, "/system/"+request.Dir, "")
+
+	if err != nil {
 		response.Fail(ctx, "上传失败，请稍后重试")
 		return
 	}
 
-	response.SuccessByData(ctx, basicResponse.DoUploadBySimple{
-		Name: result.Name,
-		Path: result.Path,
-		Url:  result.Url,
-	})
+	responses := res.DoUploadBySimple{
+		Name: name,
+		Path: uri,
+		Url:  storage.Url(uri),
+	}
+
+	response.SuccessByData(ctx, responses)
 }

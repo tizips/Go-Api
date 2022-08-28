@@ -5,7 +5,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/asset"
-	asset2 "saas/app/response/admin/dormitory/asset"
+	res "saas/app/response/admin/dormitory/asset"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -21,7 +21,8 @@ func DoDeviceByCreate(ctx *gin.Context) {
 	}
 
 	var count int64 = 0
-	app.MySQL.Model(model.DorAssetCategory{}).Where("id=? and is_enable=?", request.Category, constant.IsEnableYes).Count(&count)
+
+	app.MySQL.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
 		response.NotFound(ctx, "类型不存在")
@@ -66,6 +67,7 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 	}
 
 	var count int64 = 0
+
 	app.MySQL.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
@@ -136,10 +138,10 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToDeviceByPaginate]{
 		Page: request.GetPage(),
 		Size: request.GetSize(),
-		Data: make([]any, 0),
+		Data: make([]res.ToDeviceByPaginate, 0),
 	}
 
 	tx := app.MySQL
@@ -157,10 +159,15 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 	if responses.Total > 0 {
 
 		var assets []model.DorDevice
-		tx.Preload("Category").Order("`id` desc").Offset(request.GetOffset()).Limit(request.GetLimit()).Find(&assets)
+		tx.
+			Preload("Category").
+			Order("`id` desc").
+			Offset(request.GetOffset()).
+			Limit(request.GetLimit()).
+			Find(&assets)
 
 		for _, item := range assets {
-			responses.Data = append(responses.Data, asset2.ToDeviceByPaginate{
+			responses.Data = append(responses.Data, res.ToDeviceByPaginate{
 				Id:            item.Id,
 				Category:      item.Category.Name,
 				CategoryId:    item.Category.Id,
@@ -184,22 +191,24 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 func ToDeviceByOnline(ctx *gin.Context) {
 
 	var request asset.ToDeviceByOnline
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := make([]res.ToDeviceByOnline, 0)
 
 	var devices []model.DorDevice
-	app.MySQL.Where("category_id=?", request.Category).Find(&devices)
+
+	app.MySQL.Find(&devices, "category_id=?", request.Category)
 
 	for _, item := range devices {
-		responses = append(responses, asset2.ToDeviceByOnline{
+		responses = append(responses, res.ToDeviceByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

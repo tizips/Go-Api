@@ -17,6 +17,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.15.2
 	github.com/golang-module/carbon/v2 v2.1.9
 	github.com/gookit/color v1.5.1
+	github.com/gookit/goutil v0.5.9
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/manifoldco/promptui v0.9.0
 	github.com/qiniu/go-sdk/v7 v7.13.0

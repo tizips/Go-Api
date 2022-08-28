@@ -6,7 +6,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
-	basicResponse "saas/app/response/admin/dormitory/basic"
+	res "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -15,6 +15,7 @@ import (
 func DoTypeByCreate(ctx *gin.Context) {
 
 	var request basic.DoTypeByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -35,10 +36,13 @@ func DoTypeByCreate(ctx *gin.Context) {
 	}
 
 	if len(request.Beds) > 0 {
+
 		beds := make([]model.DorTypeBed, len(request.Beds))
+
 		for index, item := range request.Beds {
 			beds[index] = model.DorTypeBed{TypeId: typ.Id, Name: item.Name, IsPublic: item.IsPublic}
 		}
+
 		if t := tx.Create(&beds); t.RowsAffected <= 0 {
 			tx.Rollback()
 			response.Fail(ctx, "添加失败")
@@ -54,27 +58,32 @@ func DoTypeByCreate(ctx *gin.Context) {
 func DoTypeByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request basic.DoTypeByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var typing model.DorType
-	app.MySQL.Find(&typing, id)
-	if typing.Id <= 0 {
+
+	if app.MySQL.Find(&typing, id); typing.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	if typing.IsEnable != request.IsEnable {
+
 		var peoples int64 = 0
+
 		app.MySQL.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 		if peoples > 0 {
 			response.Fail(ctx, "该房型已有人入住，无法上下架")
 			return
@@ -96,20 +105,23 @@ func DoTypeByUpdate(ctx *gin.Context) {
 func DoTypeByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var typing model.DorType
-	app.MySQL.Find(&typing, id)
-	if typing.Id <= 0 {
+
+	if app.MySQL.Find(&typing, id); typing.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该房型已有人入住，无法删除")
 		return
@@ -137,20 +149,23 @@ func DoTypeByDelete(ctx *gin.Context) {
 func DoTypeByEnable(ctx *gin.Context) {
 
 	var request basic.DoTypeByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var typ model.DorType
-	app.MySQL.Find(&typ, request.Id)
-	if typ.Id <= 0 {
+
+	if app.MySQL.Find(&typ, request.Id); typ.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typ.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该房型已有人入住，无法上下架")
 		return
@@ -168,13 +183,14 @@ func DoTypeByEnable(ctx *gin.Context) {
 
 func ToTypeByList(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToTypeByList, 0)
 
 	var types []model.DorType
+
 	app.MySQL.Preload("Beds").Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
-		items := basicResponse.ToTypeByList{
+		items := res.ToTypeByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -182,7 +198,7 @@ func ToTypeByList(ctx *gin.Context) {
 			CreatedAt: item.CreatedAt.ToDateTimeString(),
 		}
 		for _, value := range item.Beds {
-			items.Beds = append(items.Beds, basicResponse.ToTypeByListOfBed{
+			items.Beds = append(items.Beds, res.ToTypeByListOfBed{
 				Name:     value.Name,
 				IsPublic: value.IsPublic,
 			})
@@ -190,18 +206,19 @@ func ToTypeByList(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func ToTypeByOnline(ctx *gin.Context) {
 
 	var request basic.ToTypeByOnline
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := make([]any, 0)
+	responses := make([]res.ToTypeByOnline, 0)
 
 	var types []model.DorType
 
@@ -222,13 +239,13 @@ func ToTypeByOnline(ctx *gin.Context) {
 	tx.Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
-		items := basicResponse.ToTypeByOnline{
+		items := res.ToTypeByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		}
 		if request.WithBed || request.MustBed {
 			for _, value := range item.Beds {
-				items.Beds = append(items.Beds, basicResponse.ToTypeByOnlineOfBed{
+				items.Beds = append(items.Beds, res.ToTypeByOnlineOfBed{
 					Id:   value.Id,
 					Name: value.Name,
 				})
@@ -237,5 +254,5 @@ func ToTypeByOnline(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

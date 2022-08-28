@@ -5,7 +5,7 @@ import (
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/basic"
-	basicResponse "saas/app/response/admin/dormitory/basic"
+	res "saas/app/response/admin/dormitory/basic"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -14,17 +14,19 @@ import (
 func DoRoomByCreate(ctx *gin.Context) {
 
 	var request basic.DoRoomByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var floor model.DorFloor
-	app.MySQL.Where("is_enable", constant.IsEnableYes).Find(&floor, request.Floor)
-	if floor.Id <= 0 {
+
+	if app.MySQL.Find(&floor, "`id`=? and `is_enable`=?", request.Floor, constant.IsEnableYes); floor.Id <= 0 {
 		response.NotFound(ctx, "楼层不存在")
 		return
 	}
+
 	if floor.IsPublic == model.DorFloorIsPublicYes {
 		response.Fail(ctx, "该楼层为公共区域，添加失败")
 		return
@@ -42,7 +44,9 @@ func DoRoomByCreate(ctx *gin.Context) {
 	var typing model.DorType
 
 	if request.IsPublic != 1 {
-		app.MySQL.Preload("Beds").Where("`is_enable`=?", constant.IsEnableYes).Find(&typing, request.Type)
+
+		app.MySQL.Preload("Beds").Find(&typing, "`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes)
+
 		if typing.Id <= 0 {
 			response.NotFound(ctx, "房型不存在")
 			return
@@ -61,7 +65,9 @@ func DoRoomByCreate(ctx *gin.Context) {
 	}
 
 	if len(typing.Beds) > 0 {
+
 		var beds []model.DorBed
+
 		for _, item := range typing.Beds {
 			beds = append(beds, model.DorBed{
 				BuildingId: room.BuildingId,
@@ -74,6 +80,7 @@ func DoRoomByCreate(ctx *gin.Context) {
 				IsPublic:   item.IsPublic,
 			})
 		}
+
 		if t := tx.Create(&beds); t.RowsAffected <= 0 {
 			tx.Rollback()
 			response.Fail(ctx, "添加失败")
@@ -89,40 +96,51 @@ func DoRoomByCreate(ctx *gin.Context) {
 func DoRoomByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var request basic.DoRoomByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var room model.DorRoom
-	app.MySQL.Find(&room, id)
-	if room.Id <= 0 {
+
+	if app.MySQL.Find(&room, id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	if room.IsPublic != 1 {
+
 		if room.TypeId != request.Type {
+
 			var count int64
+
 			app.MySQL.Model(&model.DorType{}).Where("`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes).Count(&count)
+
 			if count <= 0 {
 				response.NotFound(ctx, "房型不存在")
 				return
 			}
+
 			room.TypeId = request.Type
 		}
+
 		room.IsFurnish = request.IsFurnish
 	}
 
 	if room.IsEnable != request.IsEnable {
+
 		var peoples int64 = 0
+
 		app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 		if peoples > 0 {
 			response.Fail(ctx, "该房间已有人入住，无法上下架")
 			return
@@ -144,20 +162,23 @@ func DoRoomByUpdate(ctx *gin.Context) {
 func DoRoomByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var room model.DorRoom
-	app.MySQL.Find(&room, id)
-	if room.Id <= 0 {
+
+	if app.MySQL.Find(&room, id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(&model.DorPeople{}).Where("`room_id`=? and `status`=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法删除")
 		return
@@ -185,20 +206,23 @@ func DoRoomByDelete(ctx *gin.Context) {
 func DoRoomByEnable(ctx *gin.Context) {
 
 	var request basic.DoRoomByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var room model.DorRoom
-	app.MySQL.Find(&room, request.Id)
-	if room.Id <= 0 {
+
+	if app.MySQL.Find(&room, request.Id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法上下架")
 		return
@@ -217,20 +241,23 @@ func DoRoomByEnable(ctx *gin.Context) {
 func DoRoomByFurnish(ctx *gin.Context) {
 
 	var request basic.DoRoomByFurnish
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var room model.DorRoom
-	app.MySQL.Find(&room, request.Id)
-	if room.Id <= 0 {
+
+	if app.MySQL.Find(&room, request.Id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法上下架")
 		return
@@ -249,15 +276,16 @@ func DoRoomByFurnish(ctx *gin.Context) {
 func ToRoomByPaginate(ctx *gin.Context) {
 
 	var request basic.ToRoomByPaginate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
-	responses := response.Paginate{
+	responses := response.Paginate[res.ToRoomByPaginate]{
 		Page: request.GetPage(),
 		Size: request.GetSize(),
-		Data: make([]any, 0),
+		Data: make([]res.ToRoomByPaginate, 0),
 	}
 
 	tx := app.MySQL
@@ -294,7 +322,7 @@ func ToRoomByPaginate(ctx *gin.Context) {
 			Find(&rooms)
 
 		for _, item := range rooms {
-			responses.Data = append(responses.Data, basicResponse.ToRoomByPaginate{
+			responses.Data = append(responses.Data, res.ToRoomByPaginate{
 				Id:        item.Id,
 				Name:      item.Name,
 				Building:  item.Building.Name,
@@ -316,6 +344,7 @@ func ToRoomByPaginate(ctx *gin.Context) {
 func ToRoomByOnline(ctx *gin.Context) {
 
 	var request basic.ToRoomByOnline
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -333,7 +362,7 @@ func ToRoomByOnline(ctx *gin.Context) {
 	tx.Order("`order` asc, `id` desc").Find(&rooms)
 
 	for _, item := range rooms {
-		items := basicResponse.ToRoomByOnline{
+		items := res.ToRoomByOnline{
 			Id:   item.Id,
 			Name: item.Name,
 		}
@@ -343,5 +372,5 @@ func ToRoomByOnline(ctx *gin.Context) {
 		responses = append(responses, items)
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

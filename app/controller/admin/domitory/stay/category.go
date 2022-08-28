@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"saas/app/constant"
 	"saas/app/model"
-	liveForm "saas/app/request/admin/dormitory/stay"
-	"saas/app/response/admin/dormitory/stay"
+	"saas/app/request/admin/dormitory/stay"
+	res "saas/app/response/admin/dormitory/stay"
 	"saas/kernel/app"
 	"saas/kernel/response"
 	"strconv"
@@ -13,7 +13,8 @@ import (
 
 func DoCategoryByCreate(ctx *gin.Context) {
 
-	var request liveForm.DoCategoryByCreate
+	var request stay.DoCategoryByCreate
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
@@ -37,27 +38,32 @@ func DoCategoryByCreate(ctx *gin.Context) {
 func DoCategoryByUpdate(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
-	var request liveForm.DoCategoryByUpdate
+	var request stay.DoCategoryByUpdate
+
 	if err = ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var category model.DorStayCategory
-	app.MySQL.Find(&category, id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	if category.IsEnable != request.IsEnable {
+
 		var peoples int64 = 0
+
 		app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 		if peoples > 0 {
 			response.Fail(ctx, "该类型正在使用，无法上下架")
 			return
@@ -79,20 +85,23 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 func DoCategoryByDelete(ctx *gin.Context) {
 
 	id, err := strconv.Atoi(ctx.Param("id"))
+
 	if err != nil || id <= 0 {
 		response.FailByRequestWithMessage(ctx, "ID获取失败")
 		return
 	}
 
 	var category model.DorStayCategory
-	app.MySQL.Find(&category, id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该类型正在使用，无法上下架")
 		return
@@ -108,21 +117,24 @@ func DoCategoryByDelete(ctx *gin.Context) {
 
 func DoCategoryByEnable(ctx *gin.Context) {
 
-	var request liveForm.DoCategoryByEnable
+	var request stay.DoCategoryByEnable
+
 	if err := ctx.ShouldBind(&request); err != nil {
 		response.FailByRequest(ctx, err)
 		return
 	}
 
 	var category model.DorStayCategory
-	app.MySQL.Find(&category, request.Id)
-	if category.Id <= 0 {
+
+	if app.MySQL.Find(&category, request.Id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	var peoples int64 = 0
+
 	app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+
 	if peoples > 0 {
 		response.Fail(ctx, "该类型正在使用，无法上下架")
 		return
@@ -140,13 +152,14 @@ func DoCategoryByEnable(ctx *gin.Context) {
 
 func ToCategoryByList(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToCategoryByList, 0)
 
 	var categories []model.DorStayCategory
+
 	app.MySQL.Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
-		responses = append(responses, stay.ToCategoryByList{
+		responses = append(responses, res.ToCategoryByList{
 			Id:        item.Id,
 			Name:      item.Name,
 			Order:     item.Order,
@@ -156,23 +169,24 @@ func ToCategoryByList(ctx *gin.Context) {
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }
 
 func ToCategoryByOnline(ctx *gin.Context) {
 
-	responses := make([]any, 0)
+	responses := make([]res.ToCategoryByOnline, 0)
 
 	var categories []model.DorStayCategory
-	app.MySQL.Where("is_enable=?", constant.IsEnableYes).Order("`order` asc,`id` desc").Find(&categories)
+
+	app.MySQL.Order("`order` asc,`id` desc").Find(&categories, "is_enable=?", constant.IsEnableYes)
 
 	for _, item := range categories {
-		responses = append(responses, stay.ToCategoryByOnline{
+		responses = append(responses, res.ToCategoryByOnline{
 			Id:     item.Id,
 			Name:   item.Name,
 			IsTemp: item.IsTemp,
 		})
 	}
 
-	response.SuccessByList(ctx, responses)
+	response.SuccessByData(ctx, responses)
 }

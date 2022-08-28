@@ -55,7 +55,7 @@ func RouteSite(route *gin.RouterGroup) {
 			role := manageGroup.Group("role")
 			{
 				role.POST("", manage.DoRoleByCreate)
-				role.GET("enable", manage.ToRoleByEnable)
+				role.GET("online", manage.ToRoleByOnline)
 			}
 		}
 
