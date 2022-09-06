@@ -25,7 +25,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 	var count int64
 
-	tc := app.MySQL.Model(model.SysRole{})
+	tc := app.Database.Model(model.SysRole{})
 
 	if !authorize.Root(authorize.Id(ctx)) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
@@ -38,14 +38,14 @@ func DoAdminByCreate(ctx *gin.Context) {
 		return
 	}
 
-	app.MySQL.Model(model.SysAdmin{}).Where("`mobile`=?", request.Mobile).Count(&count)
+	app.Database.Model(model.SysAdmin{}).Where("`mobile`=?", request.Mobile).Count(&count)
 
 	if count > 0 {
 		response.Fail(ctx, "该手机号已被注册")
 		return
 	}
 
-	app.MySQL.Model(model.SysAdmin{}).Where("username = ?", request.Username).Count(&count)
+	app.Database.Model(model.SysAdmin{}).Where("username = ?", request.Username).Count(&count)
 
 	if count > 0 {
 		response.Fail(ctx, "该用户名已被注册")
@@ -54,7 +54,7 @@ func DoAdminByCreate(ctx *gin.Context) {
 
 	password, _ := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	admin := model.SysAdmin{
 		Username: request.Username,
@@ -123,7 +123,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 	var count int64
 
-	tc := app.MySQL.Model(model.SysRole{})
+	tc := app.Database.Model(model.SysRole{})
 
 	if !authorize.Root(authorize.Id(ctx)) {
 		tc = tc.Where("`id`<>?", authorize.ROOT)
@@ -136,7 +136,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		return
 	}
 
-	app.MySQL.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, request.Mobile).Count(&count)
+	app.Database.Model(model.SysAdmin{}).Where("`id`<>? and `mobile`=?", id, request.Mobile).Count(&count)
 
 	if count > 0 {
 		response.Fail(ctx, "该手机号已被注册")
@@ -145,7 +145,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 
 	var admin model.SysAdmin
 
-	if app.MySQL.Preload("BindRoles").Find(&admin, id); admin.Id <= 0 {
+	if app.Database.Preload("BindRoles").Find(&admin, id); admin.Id <= 0 {
 		response.Fail(ctx, "该账号不存在")
 		return
 	}
@@ -200,7 +200,7 @@ func DoAdminByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -288,10 +288,10 @@ func ToAdminByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if !authorize.Root(authorize.Id(ctx)) {
-		tx = tx.Where("not exists (?)", app.MySQL.
+		tx = tx.Where("not exists (?)", app.Database.
 			Select("1").
 			Model(model.SysAdminBindRole{}).
 			Where(fmt.Sprintf("%s.id=%s.admin_id", model.TableSysAdmin, model.TableSysAdminBindRole)).
@@ -363,14 +363,14 @@ func DoAdminByDelete(ctx *gin.Context) {
 
 	var admin model.SysAdmin
 
-	if app.MySQL.Find(&admin, id); admin.Id <= 0 {
+	if app.Database.Find(&admin, id); admin.Id <= 0 {
 		response.NotFound(ctx, "账号不存在")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
-	if t := app.MySQL.Delete(&admin); t.RowsAffected <= 0 {
+	if t := app.Database.Delete(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "账号删除失败")
 		return
@@ -406,16 +406,16 @@ func DoAdminByEnable(ctx *gin.Context) {
 
 	var admin model.SysAdmin
 
-	if app.MySQL.Find(&admin, request.Id); admin.Id <= 0 {
+	if app.Database.Find(&admin, request.Id); admin.Id <= 0 {
 		response.NotFound(ctx, "账号不存在")
 		return
 	}
 
 	admin.IsEnable = request.IsEnable
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
-	if t := app.MySQL.Save(&admin); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&admin); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "启禁失败")
 		return

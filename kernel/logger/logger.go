@@ -2,10 +2,12 @@ package logger
 
 import (
 	"fmt"
-	rotatelogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/gookit/color"
+	rotate "github.com/lestrrat-go/file-rotatelogs"
 	"github.com/sirupsen/logrus"
 	"os"
 	"saas/kernel/app"
+	"saas/kit/filesystem"
 	"time"
 )
 
@@ -25,10 +27,10 @@ func InitLogger() {
 
 func folder() {
 
-	path := path("")
+	storage := filesystem.Disk("local")
 
-	if err := os.MkdirAll(path, 0750); err != nil {
-		fmt.Printf("日志文件夹创建失败:%s\nerror:%v", path, err)
+	if err := storage.Mkdir("logs"); err != nil {
+		color.Errorln("fail to mkdir logs: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -45,11 +47,11 @@ func api() {
 		}
 	}
 
-	writer, _ := rotatelogs.New(
+	writer, _ := rotate.New(
 		filename+".%Y%m%d",
-		rotatelogs.WithLinkName(filename),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-		rotatelogs.WithRotationTime(time.Hour*24),
+		rotate.WithLinkName(filename),
+		rotate.WithMaxAge(time.Hour*24*30),
+		rotate.WithRotationTime(time.Hour*24),
 	)
 
 	app.Logger.Api = logrus.New()
@@ -69,11 +71,11 @@ func sql() {
 		}
 	}
 
-	writer, _ := rotatelogs.New(
+	writer, _ := rotate.New(
 		filename+".%Y%m%d",
-		rotatelogs.WithLinkName(filename),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-		rotatelogs.WithRotationTime(time.Hour*24),
+		rotate.WithLinkName(filename),
+		rotate.WithMaxAge(time.Hour*24*30),
+		rotate.WithRotationTime(time.Hour*24),
 	)
 
 	app.Logger.SQL = logrus.New()
@@ -96,11 +98,11 @@ func exception() {
 		}
 	}
 
-	writer, _ := rotatelogs.New(
+	writer, _ := rotate.New(
 		filename+".%Y%m%d",
-		rotatelogs.WithLinkName(filename),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-		rotatelogs.WithRotationTime(time.Hour*24),
+		rotate.WithLinkName(filename),
+		rotate.WithMaxAge(time.Hour*24*30),
+		rotate.WithRotationTime(time.Hour*24),
 	)
 
 	app.Logger.Exception = logrus.New()
@@ -123,11 +125,11 @@ func amqp() {
 		}
 	}
 
-	writer, _ := rotatelogs.New(
+	writer, _ := rotate.New(
 		filename+".%Y%m%d",
-		rotatelogs.WithLinkName(filename),
-		rotatelogs.WithMaxAge(time.Hour*24*30),
-		rotatelogs.WithRotationTime(time.Hour*24),
+		rotate.WithLinkName(filename),
+		rotate.WithMaxAge(time.Hour*24*30),
+		rotate.WithRotationTime(time.Hour*24),
 	)
 
 	app.Logger.Amqp = logrus.New()

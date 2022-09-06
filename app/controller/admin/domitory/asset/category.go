@@ -26,7 +26,7 @@ func DoCategoryByCreate(ctx *gin.Context) {
 		IsEnable: request.IsEnable,
 	}
 
-	if app.MySQL.Create(&category); category.Id <= 0 {
+	if app.Database.Create(&category); category.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -52,7 +52,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 
 	var category model.DorAssetCategory
 
-	if app.MySQL.Find(&category, id); category.Id <= 0 {
+	if app.Database.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
@@ -61,7 +61,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 	category.Order = request.Order
 	category.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -80,12 +80,12 @@ func DoCategoryByDelete(ctx *gin.Context) {
 
 	var category model.DorAssetCategory
 
-	if app.MySQL.Find(&category, id); category.Id <= 0 {
+	if app.Database.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
-	if t := app.MySQL.Delete(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Delete(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -104,14 +104,14 @@ func DoCategoryByEnable(ctx *gin.Context) {
 
 	var category model.DorAssetCategory
 
-	if app.MySQL.Find(&category, request.Id); category.Id <= 0 {
+	if app.Database.Find(&category, request.Id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	category.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -125,7 +125,7 @@ func ToCategoryByList(ctx *gin.Context) {
 
 	var categories []model.DorAssetCategory
 
-	app.MySQL.Order("`order` asc, `id` desc").Find(&categories)
+	app.Database.Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
 		responses = append(responses, res.ToCategoryByList{
@@ -146,7 +146,7 @@ func ToCategoryByOnline(ctx *gin.Context) {
 
 	var categories []model.DorAssetCategory
 
-	app.MySQL.Order("`order` asc, `id` desc").Find(&categories, "`is_enable`=?", constant.IsEnableYes)
+	app.Database.Order("`order` asc, `id` desc").Find(&categories, "`is_enable`=?", constant.IsEnableYes)
 
 	for _, item := range categories {
 		responses = append(responses, res.ToCategoryByOnline{

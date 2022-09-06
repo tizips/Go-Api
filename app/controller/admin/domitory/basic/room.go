@@ -22,7 +22,7 @@ func DoRoomByCreate(ctx *gin.Context) {
 
 	var floor model.DorFloor
 
-	if app.MySQL.Find(&floor, "`id`=? and `is_enable`=?", request.Floor, constant.IsEnableYes); floor.Id <= 0 {
+	if app.Database.Find(&floor, "`id`=? and `is_enable`=?", request.Floor, constant.IsEnableYes); floor.Id <= 0 {
 		response.NotFound(ctx, "楼层不存在")
 		return
 	}
@@ -45,7 +45,7 @@ func DoRoomByCreate(ctx *gin.Context) {
 
 	if request.IsPublic != 1 {
 
-		app.MySQL.Preload("Beds").Find(&typing, "`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes)
+		app.Database.Preload("Beds").Find(&typing, "`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes)
 
 		if typing.Id <= 0 {
 			response.NotFound(ctx, "房型不存在")
@@ -56,7 +56,7 @@ func DoRoomByCreate(ctx *gin.Context) {
 		room.IsFurnish = request.IsFurnish
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Create(&room); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -111,7 +111,7 @@ func DoRoomByUpdate(ctx *gin.Context) {
 
 	var room model.DorRoom
 
-	if app.MySQL.Find(&room, id); room.Id <= 0 {
+	if app.Database.Find(&room, id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
@@ -122,7 +122,7 @@ func DoRoomByUpdate(ctx *gin.Context) {
 
 			var count int64
 
-			app.MySQL.Model(&model.DorType{}).Where("`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes).Count(&count)
+			app.Database.Model(&model.DorType{}).Where("`id`=? and `is_enable`=?", request.Type, constant.IsEnableYes).Count(&count)
 
 			if count <= 0 {
 				response.NotFound(ctx, "房型不存在")
@@ -139,7 +139,7 @@ func DoRoomByUpdate(ctx *gin.Context) {
 
 		var peoples int64 = 0
 
-		app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.Database.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 		if peoples > 0 {
 			response.Fail(ctx, "该房间已有人入住，无法上下架")
@@ -151,7 +151,7 @@ func DoRoomByUpdate(ctx *gin.Context) {
 	room.Order = request.Order
 	room.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&room); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&room); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -170,21 +170,21 @@ func DoRoomByDelete(ctx *gin.Context) {
 
 	var room model.DorRoom
 
-	if app.MySQL.Find(&room, id); room.Id <= 0 {
+	if app.Database.Find(&room, id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(&model.DorPeople{}).Where("`room_id`=? and `status`=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(&model.DorPeople{}).Where("`room_id`=? and `status`=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法删除")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Delete(&room); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -214,14 +214,14 @@ func DoRoomByEnable(ctx *gin.Context) {
 
 	var room model.DorRoom
 
-	if app.MySQL.Find(&room, request.Id); room.Id <= 0 {
+	if app.Database.Find(&room, request.Id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法上下架")
@@ -230,7 +230,7 @@ func DoRoomByEnable(ctx *gin.Context) {
 
 	room.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&room); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&room); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -249,14 +249,14 @@ func DoRoomByFurnish(ctx *gin.Context) {
 
 	var room model.DorRoom
 
-	if app.MySQL.Find(&room, request.Id); room.Id <= 0 {
+	if app.Database.Find(&room, request.Id); room.Id <= 0 {
 		response.NotFound(ctx, "未找到该房间")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(model.DorPeople{}).Where("room_id=? and status=?", room.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该房间已有人入住，无法上下架")
@@ -265,7 +265,7 @@ func DoRoomByFurnish(ctx *gin.Context) {
 
 	room.IsFurnish = request.IsFurnish
 
-	if t := app.MySQL.Save(&room); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&room); t.RowsAffected <= 0 {
 		response.Fail(ctx, "装修失败")
 		return
 	}
@@ -288,7 +288,7 @@ func ToRoomByPaginate(ctx *gin.Context) {
 		Data: make([]res.ToRoomByPaginate, 0),
 	}
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if request.Floor > 0 {
 		tx = tx.Where("`floor_id`=?", request.Floor)
@@ -352,7 +352,7 @@ func ToRoomByOnline(ctx *gin.Context) {
 
 	responses := make([]any, 0)
 
-	tx := app.MySQL.Where("`floor_id`=? and `is_enable`=?", request.Floor, constant.IsEnableYes)
+	tx := app.Database.Where("`floor_id`=? and `is_enable`=?", request.Floor, constant.IsEnableYes)
 
 	if request.IsPublic > 0 {
 		tx = tx.Where("`is_public`=?", request.IsPublic)

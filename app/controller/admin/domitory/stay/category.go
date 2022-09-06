@@ -27,7 +27,7 @@ func DoCategoryByCreate(ctx *gin.Context) {
 		IsEnable: request.IsEnable,
 	}
 
-	if app.MySQL.Create(&category); category.Id <= 0 {
+	if app.Database.Create(&category); category.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -53,7 +53,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 
 	var category model.DorStayCategory
 
-	if app.MySQL.Find(&category, id); category.Id <= 0 {
+	if app.Database.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
@@ -62,7 +62,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 
 		var peoples int64 = 0
 
-		app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.Database.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 		if peoples > 0 {
 			response.Fail(ctx, "该类型正在使用，无法上下架")
@@ -74,7 +74,7 @@ func DoCategoryByUpdate(ctx *gin.Context) {
 	category.Order = request.Order
 	category.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -93,21 +93,21 @@ func DoCategoryByDelete(ctx *gin.Context) {
 
 	var category model.DorStayCategory
 
-	if app.MySQL.Find(&category, id); category.Id <= 0 {
+	if app.Database.Find(&category, id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该类型正在使用，无法上下架")
 		return
 	}
 
-	if t := app.MySQL.Delete(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Delete(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -126,14 +126,14 @@ func DoCategoryByEnable(ctx *gin.Context) {
 
 	var category model.DorStayCategory
 
-	if app.MySQL.Find(&category, request.Id); category.Id <= 0 {
+	if app.Database.Find(&category, request.Id); category.Id <= 0 {
 		response.NotFound(ctx, "未找到该类型")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(model.DorPeople{}).Where("`category_id`=? and `status`=?", category.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该类型正在使用，无法上下架")
@@ -142,7 +142,7 @@ func DoCategoryByEnable(ctx *gin.Context) {
 
 	category.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&category); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&category); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -156,7 +156,7 @@ func ToCategoryByList(ctx *gin.Context) {
 
 	var categories []model.DorStayCategory
 
-	app.MySQL.Order("`order` asc, `id` desc").Find(&categories)
+	app.Database.Order("`order` asc, `id` desc").Find(&categories)
 
 	for _, item := range categories {
 		responses = append(responses, res.ToCategoryByList{
@@ -178,7 +178,7 @@ func ToCategoryByOnline(ctx *gin.Context) {
 
 	var categories []model.DorStayCategory
 
-	app.MySQL.Order("`order` asc,`id` desc").Find(&categories, "is_enable=?", constant.IsEnableYes)
+	app.Database.Order("`order` asc,`id` desc").Find(&categories, "is_enable=?", constant.IsEnableYes)
 
 	for _, item := range categories {
 		responses = append(responses, res.ToCategoryByOnline{

@@ -22,7 +22,7 @@ func DoDeviceByCreate(ctx *gin.Context) {
 
 	var count int64 = 0
 
-	app.MySQL.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
+	app.Database.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
 		response.NotFound(ctx, "类型不存在")
@@ -42,7 +42,7 @@ func DoDeviceByCreate(ctx *gin.Context) {
 		Remark:        request.Remark,
 	}
 
-	if t := app.MySQL.Create(&assets); t.RowsAffected <= 0 {
+	if t := app.Database.Create(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -68,7 +68,7 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 
 	var count int64 = 0
 
-	app.MySQL.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
+	app.Database.Model(model.DorAssetCategory{}).Where("`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes).Count(&count)
 
 	if count <= 0 {
 		response.NotFound(ctx, "类型不存在")
@@ -77,7 +77,7 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 
 	var assets model.DorDevice
 
-	if app.MySQL.Find(&assets, id); assets.Id <= 0 {
+	if app.Database.Find(&assets, id); assets.Id <= 0 {
 		response.NotFound(ctx, "资源不存在")
 		return
 	}
@@ -97,7 +97,7 @@ func DoDeviceByUpdate(ctx *gin.Context) {
 	assets.StockTotal = request.Stock
 	assets.Remark = request.Remark
 
-	if t := app.MySQL.Save(&assets); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -116,12 +116,12 @@ func DoDeviceByDelete(ctx *gin.Context) {
 
 	var assets model.DorDevice
 
-	if app.MySQL.Find(&assets, id); assets.Id <= 0 {
+	if app.Database.Find(&assets, id); assets.Id <= 0 {
 		response.NotFound(ctx, "资源不存在")
 		return
 	}
 
-	if t := app.MySQL.Delete(&assets); t.RowsAffected <= 0 {
+	if t := app.Database.Delete(&assets); t.RowsAffected <= 0 {
 		response.Fail(ctx, "删除失败")
 		return
 	}
@@ -144,7 +144,7 @@ func ToDeviceByPaginate(ctx *gin.Context) {
 		Data: make([]res.ToDeviceByPaginate, 0),
 	}
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if request.Keyword != "" && request.Type == "no" {
 		tx = tx.Where("`no`=?", request.Keyword)
@@ -201,7 +201,7 @@ func ToDeviceByOnline(ctx *gin.Context) {
 
 	var devices []model.DorDevice
 
-	app.MySQL.Find(&devices, "category_id=?", request.Category)
+	app.Database.Find(&devices, "category_id=?", request.Category)
 
 	for _, item := range devices {
 		responses = append(responses, res.ToDeviceByOnline{

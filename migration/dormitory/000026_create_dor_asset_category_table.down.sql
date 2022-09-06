@@ -1,1 +1,0 @@
-drop table if exists dor_asset_category;

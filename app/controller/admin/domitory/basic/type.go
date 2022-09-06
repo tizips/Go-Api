@@ -21,7 +21,7 @@ func DoTypeByCreate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	typ := model.DorType{
 		Name:     request.Name,
@@ -73,7 +73,7 @@ func DoTypeByUpdate(ctx *gin.Context) {
 
 	var typing model.DorType
 
-	if app.MySQL.Find(&typing, id); typing.Id <= 0 {
+	if app.Database.Find(&typing, id); typing.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
@@ -82,7 +82,7 @@ func DoTypeByUpdate(ctx *gin.Context) {
 
 		var peoples int64 = 0
 
-		app.MySQL.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
+		app.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 		if peoples > 0 {
 			response.Fail(ctx, "该房型已有人入住，无法上下架")
@@ -94,7 +94,7 @@ func DoTypeByUpdate(ctx *gin.Context) {
 	typing.Order = request.Order
 	typing.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&typing); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&typing); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}
@@ -113,21 +113,21 @@ func DoTypeByDelete(ctx *gin.Context) {
 
 	var typing model.DorType
 
-	if app.MySQL.Find(&typing, id); typing.Id <= 0 {
+	if app.Database.Find(&typing, id); typing.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(model.DorPeople{}).Where("`type_id`=? and `status`=?", typing.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该房型已有人入住，无法删除")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Delete(&typing); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -157,14 +157,14 @@ func DoTypeByEnable(ctx *gin.Context) {
 
 	var typ model.DorType
 
-	if app.MySQL.Find(&typ, request.Id); typ.Id <= 0 {
+	if app.Database.Find(&typ, request.Id); typ.Id <= 0 {
 		response.NotFound(ctx, "未找到该房型")
 		return
 	}
 
 	var peoples int64 = 0
 
-	app.MySQL.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typ.Id, model.DorPeopleStatusLive).Count(&peoples)
+	app.Database.Model(&model.DorPeople{}).Where("`type_id`=? and `status`=?", typ.Id, model.DorPeopleStatusLive).Count(&peoples)
 
 	if peoples > 0 {
 		response.Fail(ctx, "该房型已有人入住，无法上下架")
@@ -173,7 +173,7 @@ func DoTypeByEnable(ctx *gin.Context) {
 
 	typ.IsEnable = request.IsEnable
 
-	if t := app.MySQL.Save(&typ); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&typ); t.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -187,7 +187,7 @@ func ToTypeByList(ctx *gin.Context) {
 
 	var types []model.DorType
 
-	app.MySQL.Preload("Beds").Order("`order` asc, `id` desc").Find(&types)
+	app.Database.Preload("Beds").Order("`order` asc, `id` desc").Find(&types)
 
 	for _, item := range types {
 		items := res.ToTypeByList{
@@ -222,13 +222,13 @@ func ToTypeByOnline(ctx *gin.Context) {
 
 	var types []model.DorType
 
-	tx := app.MySQL.Where("`is_enable`=?", constant.IsEnableYes)
+	tx := app.Database.Where("`is_enable`=?", constant.IsEnableYes)
 
 	if request.WithBed || request.MustBed {
 		tx = tx.Preload("Beds")
 	}
 	if request.MustBed {
-		tx = tx.Where("exists (?)", app.MySQL.
+		tx = tx.Where("exists (?)", app.Database.
 			Select("1").
 			Table(model.TableDorTypeBed).
 			Where(fmt.Sprintf("%s.id=%s.type_id", model.TableDorType, model.TableDorTypeBed)).

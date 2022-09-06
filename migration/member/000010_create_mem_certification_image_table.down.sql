@@ -1,1 +1,0 @@
-drop table if exists mem_certification_image;

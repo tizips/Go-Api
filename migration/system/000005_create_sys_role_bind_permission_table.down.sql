@@ -1,1 +1,0 @@
-drop table if exists sys_role_bind_permission;

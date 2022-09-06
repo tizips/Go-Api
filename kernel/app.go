@@ -15,7 +15,7 @@ var services = []func(){
 	config.InitConfig,
 	api.InitApi,
 	logger.InitLogger,
-	database.InitMySQL,
+	database.InitDatabase,
 	database.InitRedis,
 	authorize.InitCasbin,
 	snowflake.InitSnowflake,

@@ -46,7 +46,7 @@ func root(cmd *cobra.Command, args []string) {
 
 	var admin model.SysAdmin
 
-	app.MySQL.Where("username=?", username).Find(&admin)
+	app.Database.Where("username=?", username).Find(&admin)
 
 	if admin.Id <= 0 {
 
@@ -59,7 +59,7 @@ func root(cmd *cobra.Command, args []string) {
 				}
 
 				var total int64
-				if app.MySQL.Model(&model.SysAdmin{}).Where("mobile=?", input).Count(&total); total > 0 {
+				if app.Database.Model(&model.SysAdmin{}).Where("mobile=?", input).Count(&total); total > 0 {
 					return errors.New("手机号已被使用")
 				}
 
@@ -110,7 +110,7 @@ func root(cmd *cobra.Command, args []string) {
 			IsEnable: constant.IsEnableYes,
 		}
 
-		if tx := app.MySQL.Create(&admin); tx.RowsAffected <= 0 {
+		if tx := app.Database.Create(&admin); tx.RowsAffected <= 0 {
 			color.Errorf("Create Admin error: %v", tx.Error)
 			return
 		}
@@ -122,7 +122,7 @@ func root(cmd *cobra.Command, args []string) {
 	}
 
 	var bind = model.SysAdminBindRole{AdminId: admin.Id, RoleId: authorize.ROOT}
-	app.MySQL.Where("`admin_id`=? and `role_id`=?", admin.Id, authorize.ROOT).FirstOrCreate(&bind)
+	app.Database.Where("`admin_id`=? and `role_id`=?", admin.Id, authorize.ROOT).FirstOrCreate(&bind)
 	if bind.Id <= 0 {
 		color.Errorln("Create Admin bind Role fail")
 		return

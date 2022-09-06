@@ -24,7 +24,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
+	if app.Database.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
@@ -35,7 +35,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 	if request.Parent > 0 {
 
-		if app.MySQL.Find(&parent, request.Parent); parent.Id <= 0 {
+		if app.Database.Find(&parent, request.Parent); parent.Id <= 0 {
 			response.Fail(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
@@ -61,7 +61,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 
 		var count int64
 
-		app.MySQL.Model(model.SysPermission{}).Where("`method`=? and `path`=?", request.Method, request.Path).Count(&count)
+		app.Database.Model(model.SysPermission{}).Where("`method`=? and `path`=?", request.Method, request.Path).Count(&count)
 
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
@@ -79,7 +79,7 @@ func DoPermissionByCreate(ctx *gin.Context) {
 		Path:     request.Path,
 	}
 
-	if app.MySQL.Create(&permission); permission.Id <= 0 {
+	if app.Database.Create(&permission); permission.Id <= 0 {
 		response.Fail(ctx, "添加失败")
 		return
 	}
@@ -105,7 +105,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	var permission model.SysPermission
 
-	if app.MySQL.Find(&permission, id); permission.Id <= 0 {
+	if app.Database.Find(&permission, id); permission.Id <= 0 {
 		response.NotFound(ctx, "权限不存在")
 		return
 	}
@@ -117,7 +117,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 		var module model.SysModule
 
-		if app.MySQL.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
+		if app.Database.Where("`is_enable`=?", constant.IsEnableYes).Find(&module, request.Module); module.Id <= 0 {
 			response.NotFound(ctx, "模块不存在")
 			return
 		}
@@ -129,7 +129,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 	if request.Parent > 0 {
 
-		if app.MySQL.Find(&parent, request.Parent); parent.Id <= 0 {
+		if app.Database.Find(&parent, request.Parent); parent.Id <= 0 {
 			response.NotFound(ctx, "父级权限不存在")
 			return
 		} else if parent.ParentI2 > 0 {
@@ -153,7 +153,7 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 
 		var count int64
 
-		app.MySQL.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, request.Method, request.Path).Count(&count)
+		app.Database.Model(model.SysPermission{}).Where("`id`<>? and `method`=? and `path`=?", id, request.Method, request.Path).Count(&count)
 
 		if count > 0 {
 			response.Fail(ctx, "权限已存在")
@@ -168,9 +168,9 @@ func DoPermissionByUpdate(ctx *gin.Context) {
 	permission.Method = request.Method
 	permission.Path = request.Path
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
-	if t := app.MySQL.Save(&permission); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "修改失败")
 		return
@@ -218,12 +218,12 @@ func DoPermissionByDelete(ctx *gin.Context) {
 
 	var permission model.SysPermission
 
-	if app.MySQL.Find(&permission, id); permission.Id <= 0 {
+	if app.Database.Find(&permission, id); permission.Id <= 0 {
 		response.Fail(ctx, "权限不存在")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Delete(&permission); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -327,7 +327,7 @@ func ToPermissionBySelf(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Preload("Module").Find(&permissions)
+		app.Database.Preload("Module").Find(&permissions)
 
 		for _, item := range permissions {
 

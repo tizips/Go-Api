@@ -22,7 +22,7 @@ func ToApiByList(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Find(&module, request.Module); module.Id <= 0 {
+	if app.Database.Find(&module, request.Module); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
@@ -33,7 +33,7 @@ func ToApiByList(ctx *gin.Context) {
 
 	var permissions []model.SysPermission
 
-	app.MySQL.Find(&permissions, "`module_id`=? and `method`<>? and `path`<>?", module.Id, "", "")
+	app.Database.Find(&permissions, "`module_id`=? and `method`<>? and `path`<>?", module.Id, "", "")
 
 	var permissionsCache = make(map[string]bool, 0)
 

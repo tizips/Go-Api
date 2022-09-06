@@ -8,7 +8,7 @@ import (
 
 func TreePermission(module int, parent bool, simple bool) []manage.TreePermission {
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if module > 0 {
 		tx = tx.Where("`module_id` = ?", module)

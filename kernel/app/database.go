@@ -6,6 +6,7 @@ import (
 )
 
 var (
-	MySQL *gorm.DB
-	Redis *redis.Client
+	Database  *gorm.DB
+	Redis     *redis.Client
+	Databases = make(map[string]*gorm.DB, 0)
 )

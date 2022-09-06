@@ -10,7 +10,8 @@ var Cfg struct {
 	} `yaml:"server"`
 
 	Database struct {
-		MySQL struct {
+		Driver string `yaml:"driver" default:"mysql"`
+		MySQL  struct {
 			Host        string `yaml:"host" default:"127.0.0.1"`
 			Port        int32  `yaml:"port" default:"3306"`
 			Database    string `yaml:"database" default:"saas"`
@@ -23,6 +24,43 @@ var Cfg struct {
 			MaxOpen     int    `yaml:"max_open" default:"100"`
 			MaxLifetime int    `yaml:"max_lifetime" default:"60"`
 		} `yaml:"mysql"`
+		PostgreSQL struct {
+			Host        string `yaml:"host" default:"127.0.0.1"`
+			Port        int32  `yaml:"port" default:"9920"`
+			Username    string `yaml:"username"`
+			Password    string `yaml:"password"`
+			Database    string `yaml:"database" default:"saas"`
+			Prefix      string `yaml:"prefix"`
+			SslMode     string `yaml:"ssl_mode" default:"disable"`
+			Timezone    string `yaml:"timezone" default:"Asia/Shanghai"`
+			MaxIdle     int    `yaml:"max_idle" default:"10"`
+			MaxOpen     int    `yaml:"max_open" default:"100"`
+			MaxLifetime int    `yaml:"max_lifetime" default:"60"`
+		} `yaml:"postgresql"`
+		SQLServer struct {
+			Host        string `yaml:"host" default:"127.0.0.1"`
+			Port        int32  `yaml:"port" default:"9930"`
+			Username    string `yaml:"username"`
+			Password    string `yaml:"password"`
+			Database    string `yaml:"database" default:"saas"`
+			Prefix      string `yaml:"prefix"`
+			MaxIdle     int    `yaml:"max_idle" default:"10"`
+			MaxOpen     int    `yaml:"max_open" default:"100"`
+			MaxLifetime int    `yaml:"max_lifetime" default:"60"`
+		} `yaml:"sqlserver"`
+		Clickhouse struct {
+			Host         string `yaml:"host" default:"127.0.0.1"`
+			Port         int32  `yaml:"port" default:"9000"`
+			Username     string `yaml:"username"`
+			Password     string `yaml:"password"`
+			Database     string `yaml:"database" default:"saas"`
+			ReadTimeout  string `yaml:"read_timeout" default:"10"`
+			WriteTimeout string `yaml:"write_timeout" default:"10"`
+			Prefix       string `yaml:"prefix"`
+			MaxIdle      int    `yaml:"max_idle" default:"10"`
+			MaxOpen      int    `yaml:"max_open" default:"100"`
+			MaxLifetime  int    `yaml:"max_lifetime" default:"60"`
+		} `yaml:"clickhouse"`
 		Redis struct {
 			Host        string `yaml:"host" default:"127.0.0.1"`
 			Port        int32  `yaml:"port" default:"6379"`

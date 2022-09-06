@@ -38,10 +38,10 @@ func ToAccountByModule(ctx *gin.Context) {
 
 	var modules []model.SysModule
 
-	tx := app.MySQL.
+	tx := app.Database.
 		Where("`is_enable` = ?", constant.IsEnableYes)
 
-	tc := app.MySQL.
+	tc := app.Database.
 		Select("1").
 		Model(model.SysPermission{}).
 		Where(fmt.Sprintf("`%s`.`id`=`%s`.`module_id`", model.TableSysModule, model.TableSysPermission))
@@ -82,7 +82,7 @@ func ToAccountByPermission(ctx *gin.Context) {
 
 	var permissions []model.SysPermission
 
-	tx := app.MySQL.
+	tx := app.Database.
 		Where("`module_id` = ? and `method` <> ? and `path` <> ?", request.Module, "", "")
 
 	if !authorize.Root(authorize.Id(ctx)) {
@@ -121,7 +121,7 @@ func DoAccountByUpdate(ctx *gin.Context) {
 		admin.Password = string(password)
 	}
 
-	if t := app.MySQL.Save(&admin); t.RowsAffected <= 0 {
+	if t := app.Database.Save(&admin); t.RowsAffected <= 0 {
 		response.Fail(ctx, "修改失败")
 		return
 	}

@@ -49,7 +49,7 @@ func FindById(ctx *gin.Context, model any, id any) {
 			return
 		}
 
-		tx := app.MySQL.Find(&model, id)
+		tx := app.Database.Find(&model, id)
 		if tx.RowsAffected > 0 {
 			hash, _ := json.Marshal(model)
 			app.Redis.Set(ctx, Key(table, id), string(hash), ttl())

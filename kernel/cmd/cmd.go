@@ -14,5 +14,7 @@ func InitCmd() {
 	Root(command)
 	Password(command)
 
+	NewMigrate(command)
+
 	_ = command.Execute()
 }

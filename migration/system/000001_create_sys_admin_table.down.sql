@@ -1,1 +1,0 @@
-drop table if exists sys_admin

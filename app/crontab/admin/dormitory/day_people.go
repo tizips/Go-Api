@@ -24,10 +24,10 @@ func handler() {
 
 	var peoples []model.DorPeople
 
-	app.MySQL.
+	app.Database.
 		Preload("Master", func(db *gorm.DB) *gorm.DB { return db.Unscoped() }).
 		Where("`start`<=? and `status`=?", now.Yesterday().ToDateString(), model.DorPeopleStatusLive).
-		Where("not exists (?)", app.MySQL.
+		Where("not exists (?)", app.Database.
 			Select("1").
 			Table(model.TableDorDay).
 			Where(fmt.Sprintf("%s.`id`=%s.`people_id`", model.TableDorPeople, model.TableDorDay)).
@@ -52,7 +52,7 @@ func handler() {
 						Date:           carbon.Date{Carbon: now.Yesterday()},
 					}
 				}
-				app.MySQL.Create(&days)
+				app.Database.Create(&days)
 			}
 
 			return nil

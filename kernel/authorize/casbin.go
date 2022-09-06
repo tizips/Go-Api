@@ -12,7 +12,7 @@ const ROOT = 666
 
 func InitCasbin() {
 
-	a, err := adapter.NewAdapterByDBUseTableName(app.MySQL, app.Cfg.Database.MySQL.Prefix, "sys_casbin")
+	a, err := adapter.NewAdapterByDBUseTableName(app.Database, app.Cfg.Database.MySQL.Prefix, "sys_casbin")
 	if err != nil {
 		color.Errorf("Casbin new adapter error: %v", err)
 		return

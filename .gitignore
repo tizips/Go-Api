@@ -4,6 +4,8 @@
 runtime
 conf/env.yaml
 
+.DS_Store
+
 .idea
 *bak
 

@@ -107,7 +107,7 @@ func (that *Local) Delete(uri string) error {
 		return errors.New("file not exist")
 	}
 
-	return os.Remove(app.Dir.Runtime + that.path(uri))
+	return os.RemoveAll(app.Dir.Runtime + that.path(uri))
 }
 
 func (that *Local) Url(uri string) string {

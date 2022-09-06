@@ -3,11 +3,11 @@ package stay
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/bsm/redislock"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-module/carbon/v2"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
+	"replace.github.com/bsm/redislock"
 	"saas/app/constant"
 	"saas/app/model"
 	"saas/app/request/admin/dormitory/stay"
@@ -26,7 +26,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), request.Status)
+	tx := app.Database.Where(fmt.Sprintf("%s.`status`=?", model.TableDorPeople), request.Status)
 
 	if request.Floor > 0 {
 		tx = tx.Where("`floor_id`=?", request.Floor)
@@ -40,7 +40,7 @@ func ToPeopleByPaginate(ctx *gin.Context) {
 
 	if request.Keyword != "" {
 
-		condition := app.MySQL.Select("1")
+		condition := app.Database.Select("1")
 
 		if request.Type == "mobile" {
 			condition = condition.
@@ -144,21 +144,21 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 	var bed model.DorBed
 
-	if app.MySQL.Preload(clause.Associations).Find(&bed, "`id`=? and `is_enable`=?", request.Bed, constant.IsEnableYes); bed.Id <= 0 {
+	if app.Database.Preload(clause.Associations).Find(&bed, "`id`=? and `is_enable`=?", request.Bed, constant.IsEnableYes); bed.Id <= 0 {
 		response.NotFound(ctx, "床位不存在")
 		return
 	}
 
 	var category model.DorStayCategory
 
-	if app.MySQL.Find(&category, "`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes); category.Id <= 0 {
+	if app.Database.Find(&category, "`id`=? and `is_enable`=?", request.Category, constant.IsEnableYes); category.Id <= 0 {
 		response.NotFound(ctx, "类型不存在")
 		return
 	}
 
 	var count int64 = 0
 
-	app.MySQL.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
+	app.Database.Model(model.DorPeople{}).Joins(fmt.Sprintf("left join `%s` on `%s`.`member_id`=`%s`.`id`", model.TableMemMember, model.TableDorPeople, model.TableMemMember)).Where(fmt.Sprintf("`%s`.`mobile`=? and `%s`.`status`=?", model.TableMemMember, model.TableDorPeople), request.Mobile, model.DorPeopleStatusLive).Count(&count)
 
 	if count > 0 {
 		response.Fail(ctx, "该手机号已办理了入住，无法重复办理")
@@ -167,7 +167,7 @@ func DoPeopleByCreate(ctx *gin.Context) {
 
 	var member model.MemMember
 
-	if app.MySQL.Find(&member, "`mobile`=?", request.Mobile); member.Id == "" {
+	if app.Database.Find(&member, "`mobile`=?", request.Mobile); member.Id == "" {
 
 		obtain, err := redislock.New(app.Redis).Obtain(ctx, "lock:member:"+request.Mobile, time.Second*30, &redislock.Options{RetryStrategy: redislock.LinearBackoff(time.Microsecond * 3)})
 
@@ -186,13 +186,13 @@ func DoPeopleByCreate(ctx *gin.Context) {
 			IsEnable: constant.IsEnableYes,
 		}
 
-		if t := app.MySQL.Create(&member); t.RowsAffected <= 0 {
+		if t := app.Database.Create(&member); t.RowsAffected <= 0 {
 			response.Fail(ctx, "办理失败")
 			return
 		}
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	people := model.DorPeople{
 		CategoryId: category.Id,

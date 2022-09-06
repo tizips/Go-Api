@@ -40,7 +40,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
+		app.Database.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -50,7 +50,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
+		app.Database.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -60,7 +60,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
+		app.Database.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -70,7 +70,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
+		app.Database.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -94,7 +94,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	role := model.SysRole{
 		Name:    request.Name,
@@ -125,7 +125,7 @@ func DoRoleByCreate(ctx *gin.Context) {
 	var permissions []model.SysRoleBindPermission
 
 	tx.
-		Preload("Permission", app.MySQL.Where("`method`<>? and `path`<>?", "", "")).
+		Preload("Permission", app.Database.Where("`method`<>? and `path`<>?", "", "")).
 		Where("`role_id`=?", role.Id).
 		Find(&permissions)
 
@@ -172,7 +172,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 	var role model.SysRole
 
-	if app.MySQL.Find(&role, id); role.Id <= 0 {
+	if app.Database.Find(&role, id); role.Id <= 0 {
 		response.NotFound(ctx, "角色不存在")
 		return
 	}
@@ -197,7 +197,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
+		app.Database.Find(&permissions, "`module_id` in (?) and `method`<>? and `path`<>?", modules, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -207,7 +207,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
+		app.Database.Find(&permissions, "`id` in (?) and `method`<>? and `path`<>?", children3, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -217,7 +217,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
+		app.Database.Find(&permissions, "`parent_i2` in (?) and `method`<>? and `path`<>?", children2, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -227,7 +227,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 
 		var permissions []model.SysPermission
 
-		app.MySQL.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
+		app.Database.Find(&permissions, "`parent_i1` in (?) and `method`<>? and `path`<>?", children1, "", "")
 
 		for _, item := range permissions {
 			permissionsIds = append(permissionsIds, item.Id)
@@ -254,7 +254,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 	role.Name = request.Name
 	role.Summary = request.Summary
 
-	app.MySQL.Find(&role.BindPermissions, "`role_id`=?", role.Id)
+	app.Database.Find(&role.BindPermissions, "`role_id`=?", role.Id)
 
 	var creates []model.SysRoleBindPermission
 	var deletes []int
@@ -297,7 +297,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Save(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -358,7 +358,7 @@ func DoRoleByUpdate(ctx *gin.Context) {
 		var permissions []model.SysRoleBindPermission
 
 		tx.
-			Preload("Permission", app.MySQL.Where("method <> ? and path <> ?", "", "")).
+			Preload("Permission", app.Database.Where("method <> ? and path <> ?", "", "")).
 			Find(&permissions, "`role_id`=?", role.Id)
 
 		if len(permissions) > 0 {
@@ -398,14 +398,14 @@ func DoRoleByDelete(ctx *gin.Context) {
 
 	var role model.SysRole
 
-	if app.MySQL.Find(&role, id); role.Id <= 0 {
+	if app.Database.Find(&role, id); role.Id <= 0 {
 		response.NotFound(ctx, "角色不存在")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
-	if t := app.MySQL.Delete(&role); t.RowsAffected <= 0 {
+	if t := app.Database.Delete(&role); t.RowsAffected <= 0 {
 		tx.Rollback()
 		response.Fail(ctx, "删除失败")
 		return
@@ -439,7 +439,7 @@ func ToRoleByPaginate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL.Where("`id`<>?", authorize.ROOT)
+	tx := app.Database.Where("`id`<>?", authorize.ROOT)
 
 	responses := response.Paginate[res.ToRoleByPaginate]{
 		Page: request.GetPage(),
@@ -487,7 +487,7 @@ func ToRoleByOnline(ctx *gin.Context) {
 
 	var roles []model.SysRole
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if !authorize.Root(authorize.Id(ctx)) {
 		tx.Where("`role_id`<>?", authorize.ROOT)

@@ -28,7 +28,7 @@ func DoLoginByAccount(ctx *gin.Context) {
 
 	var admin model.SysAdmin
 
-	app.MySQL.Find(&admin, "`username`=? and `is_enable`=?", request.Username, constant.IsEnableYes)
+	app.Database.Find(&admin, "`username`=? and `is_enable`=?", request.Username, constant.IsEnableYes)
 
 	if admin.Id <= 0 {
 		response.Fail(ctx, "用户名或密码错误")

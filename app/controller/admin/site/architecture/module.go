@@ -22,7 +22,7 @@ func DoModuleByCreate(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Find(&module, "slug = ?", request.Slug); module.Id > 0 {
+	if app.Database.Find(&module, "slug = ?", request.Slug); module.Id > 0 {
 		response.Fail(ctx, "模块已存在")
 		return
 	}
@@ -34,7 +34,7 @@ func DoModuleByCreate(ctx *gin.Context) {
 		Order:    request.Order,
 	}
 
-	if tx := app.MySQL.Create(&module); tx.RowsAffected <= 0 {
+	if tx := app.Database.Create(&module); tx.RowsAffected <= 0 {
 		response.Fail(ctx, "模块创建失败")
 		return
 	}
@@ -60,7 +60,7 @@ func DoModuleByUpdate(ctx *gin.Context) {
 
 	var count int64
 
-	app.MySQL.Model(model.SysModule{}).Where("`id`<>? and `slug`=?", id, request.Slug).Count(&count)
+	app.Database.Model(model.SysModule{}).Where("`id`<>? and `slug`=?", id, request.Slug).Count(&count)
 
 	if count > 0 {
 		response.Fail(ctx, "模块已存在")
@@ -69,7 +69,7 @@ func DoModuleByUpdate(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Find(&module, id); module.Id <= 0 {
+	if app.Database.Find(&module, id); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
@@ -79,7 +79,7 @@ func DoModuleByUpdate(ctx *gin.Context) {
 	module.IsEnable = request.IsEnable
 	module.Order = request.Order
 
-	if tx := app.MySQL.Save(&module); tx.RowsAffected <= 0 {
+	if tx := app.Database.Save(&module); tx.RowsAffected <= 0 {
 		response.Fail(ctx, "模块修改失败")
 		return
 	}
@@ -98,12 +98,12 @@ func DoModuleByDelete(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Find(&module, id); module.Id <= 0 {
+	if app.Database.Find(&module, id); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
 
-	if tx := app.MySQL.Delete(&module); tx.RowsAffected <= 0 {
+	if tx := app.Database.Delete(&module); tx.RowsAffected <= 0 {
 		response.Fail(ctx, "模块删除失败")
 		return
 	}
@@ -122,14 +122,14 @@ func DoModuleByEnable(ctx *gin.Context) {
 
 	var module model.SysModule
 
-	if app.MySQL.Find(&module, request.Id); module.Id <= 0 {
+	if app.Database.Find(&module, request.Id); module.Id <= 0 {
 		response.NotFound(ctx, "模块不存在")
 		return
 	}
 
 	module.IsEnable = request.IsEnable
 
-	if tx := app.MySQL.Save(&module); tx.RowsAffected <= 0 {
+	if tx := app.Database.Save(&module); tx.RowsAffected <= 0 {
 		response.Fail(ctx, "启禁失败")
 		return
 	}
@@ -143,7 +143,7 @@ func ToModuleByList(ctx *gin.Context) {
 
 	var modules []model.SysModule
 
-	app.MySQL.Order("`order` asc").Find(&modules)
+	app.Database.Order("`order` asc").Find(&modules)
 
 	for _, item := range modules {
 		responses = append(responses, res.ToModuleByList{
@@ -165,7 +165,7 @@ func ToModuleByOnline(ctx *gin.Context) {
 
 	var modules []model.SysModule
 
-	app.MySQL.
+	app.Database.
 		Where("`is_enable`=?", constant.IsEnableYes).
 		Order("`order` asc").
 		Find(&modules)

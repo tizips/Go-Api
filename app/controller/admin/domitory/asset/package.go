@@ -27,7 +27,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 
 	var devices []model.DorDevice
 
-	app.MySQL.Find(&devices, "`id` in (?)", deviceIds)
+	app.Database.Find(&devices, "`id` in (?)", deviceIds)
 
 	for _, item := range request.Devices {
 		mark := true
@@ -47,7 +47,7 @@ func DoPackageByCreate(ctx *gin.Context) {
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	pack := model.DorPackage{
 		Name: request.Name,
@@ -97,7 +97,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 
 	var pack model.DorPackage
 
-	if app.MySQL.Preload("Details").Find(&pack, id); pack.Id <= 0 {
+	if app.Database.Preload("Details").Find(&pack, id); pack.Id <= 0 {
 		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
@@ -110,7 +110,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 
 	var devices []model.DorDevice
 
-	app.MySQL.Find(&devices, "id in (?)", deviceIds)
+	app.Database.Find(&devices, "id in (?)", deviceIds)
 
 	for _, item := range request.Devices {
 		mark := true
@@ -166,7 +166,7 @@ func DoPackageByUpdate(ctx *gin.Context) {
 		}
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if request.Name != pack.Name {
 
@@ -219,12 +219,12 @@ func DoPackageByDelete(ctx *gin.Context) {
 
 	var pack model.DorPackage
 
-	if app.MySQL.Find(&pack, id); pack.Id <= 0 {
+	if app.Database.Find(&pack, id); pack.Id <= 0 {
 		response.NotFound(ctx, "未找到该打包数据")
 		return
 	}
 
-	tx := app.MySQL.Begin()
+	tx := app.Database.Begin()
 
 	if t := tx.Delete(&pack); t.RowsAffected <= 0 {
 		tx.Rollback()
@@ -259,7 +259,7 @@ func ToPackageByPaginate(ctx *gin.Context) {
 		Data:  make([]res.ToPackageByPaginate, 0),
 	}
 
-	tx := app.MySQL
+	tx := app.Database
 
 	if request.Keyword != "" {
 		tx = tx.Where("`name` like ?", "%"+request.Keyword+"%")
@@ -305,7 +305,7 @@ func ToPackageByOnline(ctx *gin.Context) {
 
 	var packages []model.DorPackage
 
-	app.MySQL.Order("`id` desc").Find(&packages)
+	app.Database.Order("`id` desc").Find(&packages)
 
 	for _, item := range packages {
 		responses = append(responses, res.ToPackageByOnline{
